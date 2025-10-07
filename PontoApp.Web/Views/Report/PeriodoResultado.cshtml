@@ -1,0 +1,72 @@
+﻿@model WorkSummaryDto
+
+@* Cabeçalho *@
+<h2>
+    Período: @Model.Inicio.ToString("dd/MM/yyyy") a @Model.Fim.ToString("dd/MM/yyyy")
+</h2>
+
+<div class="mb-3">
+    <a class="btn btn-success"
+       asp-action="Excel"
+       asp-route-inicio="@Model.Inicio.ToString("yyyy-MM-dd")"
+       asp-route-fim="@Model.Fim.ToString("yyyy-MM-dd")"
+       asp-route-employeeId="@(Model.EmployeeId ?? 0)">
+        Exportar Excel
+    </a>
+</div>
+
+<table class="table table-striped align-middle">
+    <thead>
+        <tr>
+            <th style="width:8%">Dia</th>
+            <th style="width:8%">EmpId</th>
+            <th>Nome</th>
+            <th style="width:10%">IN</th>
+            <th style="width:10%">OUT</th>
+            <th style="width:12%">Saída Almoço</th>
+            <th style="width:12%">Volta Almoço</th>
+            <th style="width:8%">Min</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Dias.Any())
+        {
+            <tr><td colspan="8" class="text-center text-muted">Nenhum registro no período.</td></tr>
+        }
+        else
+        {
+            foreach (var d in Model.Dias.OrderBy(d => d.Dia).ThenBy(d => d.EmployeeId))
+            {
+                var first = true;
+
+                foreach (var i in d.Intervalos.OrderBy(x => x.In))
+                {
+                    <tr>
+                        <td>@d.Dia.ToString("dd/MM")</td>
+                        <td>@d.EmployeeId</td>
+                        <td>@d.EmployeeNome</td>
+
+                        <td>@i.In.ToLocalTime().ToString("HH:mm")</td>
+                        <td>@(i.Out?.ToLocalTime().ToString("HH:mm") ?? "")</td>
+
+                        <td>
+                            @(first && d.SaidaAlmoco.HasValue
+                                            ? d.SaidaAlmoco.Value.ToLocalTime().ToString("HH:mm")
+                                            : "")
+                                             </td>
+                                             <td>
+                            @(first && d.VoltaAlmoco.HasValue
+                                            ? d.VoltaAlmoco.Value.ToLocalTime().ToString("HH:mm")
+                                            : "")
+                        </td>
+
+                        <td>@(i.Out.HasValue ? ((int)i.Duration.TotalMinutes).ToString() : "")</td>
+                    </tr>
+                    first = false;
+                }
+            }
+        }
+    </tbody>
+</table>
+
+<a asp-action="Periodo" class="btn btn-link">Voltar</a>

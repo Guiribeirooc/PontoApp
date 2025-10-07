@@ -1,0 +1,52 @@
+﻿@model PontoApp.Web.ViewModels.AdminManualPunchViewModel
+@{
+    ViewData["Title"] = "Marcação Manual (Admin)";
+}
+
+<h2>Marcação Manual</h2>
+
+<div asp-validation-summary="ModelOnly" class="alert alert-warning"></div>
+
+<form asp-action="Create" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-6">
+        <label asp-for="EmployeeId" class="form-label">Colaborador</label>
+        <select asp-for="EmployeeId" asp-items="Model.Employees" class="form-select">
+            <option value="">Selecione...</option>
+        </select>
+        <span asp-validation-for="EmployeeId" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="Tipo" class="form-label">Tipo</label>
+        <select asp-for="Tipo" class="form-select">
+            <option value="Entrada">Entrada</option>
+            <option value="SaidaAlmoco">Saída para Almoço</option>
+            <option value="VoltaAlmoco">Volta do Almoço</option>
+            <option value="Saida">Saída</option>
+        </select>
+        <span asp-validation-for="Tipo" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="DataHoraLocal" class="form-label"></label>
+        <input asp-for="DataHoraLocal" type="datetime-local" class="form-control" />
+        <span asp-validation-for="DataHoraLocal" class="text-danger"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Justificativa" class="form-label">Justificativa</label>
+        <textarea asp-for="Justificativa" class="form-control" rows="2" maxlength="300"
+                  placeholder="Ajuste de batida esquecida, registro fora do app, etc."></textarea>
+        <span asp-validation-for="Justificativa" class="text-danger"></span>
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-primary">Salvar</button>
+        @if (Model.EmployeeId.HasValue)
+        {
+            <a asp-action="List" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary">Ver do dia</a>
+        }
+    </div>
+</form>

@@ -1,0 +1,60 @@
+@using Microsoft.AspNetCore.Authorization
+@model PontoApp.Web.ViewModels.PunchMarkViewModel
+@{
+    ViewData["Title"] = "Bater Ponto (Admin)";
+}
+
+<h2>Bater Ponto</h2>
+
+@if (TempData["ok"] is string okMsg)
+{
+    <div class="alert alert-success">@okMsg</div>
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-warning"></div>
+
+@if (!string.IsNullOrEmpty(Model.Mensagem))
+{
+    <div class="alert alert-success">@Model.Mensagem</div>
+}
+
+<form asp-action="Mark" method="post" class="mt-3">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="EmployeeId" class="form-label"></label>
+        <select asp-for="EmployeeId" asp-items="Model.Employees" class="form-select" id="empSelect">
+            <option value="">Selecione...</option>
+        </select>
+        <span asp-validation-for="EmployeeId" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Tipo" class="form-label"></label>
+        <select asp-for="Tipo" class="form-select">
+            <option value="Entrada">Entrada</option>
+            <option value="SaidaAlmoco">Saída para Almoço</option>
+            <option value="VoltaAlmoco">Volta do Almoço</option>
+            <option value="Saida">Saída</option>
+        </select>
+        <span asp-validation-for="Tipo" class="text-danger"></span>
+    </div>
+
+    <button id="btnMark" type="submit" class="btn btn-primary">Registrar</button>
+</form>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/4.0.0/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        (function () {
+            const sel = document.getElementById('empSelect');
+            const btn = document.getElementById('btnMark');
+            function toggle() { btn.disabled = (sel.value === ''); }
+            sel.addEventListener('change', toggle);
+            toggle();
+        })();
+    </script>
+}

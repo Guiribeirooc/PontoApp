@@ -1,0 +1,20 @@
+﻿@{
+    ViewData["Title"] = "Início";
+}
+
+<h2>Bem-vindo ao sistema de ponto da Easy</h2>
+
+@if (ViewBag.Mensagem != null)
+{
+    <div class="alert alert-success">@ViewBag.Mensagem</div>
+}
+
+<p>
+    <a class="btn btn-primary" asp-controller="Punch" asp-action="Index">Bater Ponto</a>
+</p>
+<p>
+    <a class="btn btn-secondary" asp-controller="Report" asp-action="Periodo">Relatórios</a>
+</p>
+<p>
+    <a class="btn btn-info" asp-controller="Employee" asp-action="Index">Colaboradores</a>
+</p>

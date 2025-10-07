@@ -1,0 +1,43 @@
+﻿@model RegisterEmployeeViewModel
+@{
+    ViewData["Title"] = "Cadastro de Colaborador";
+}
+
+<h2>Cadastro de Colaborador</h2>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="RegisterEmployee" method="post" class="row g-3">
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-6">
+        <label class="form-label">E-mail</label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">PIN</label>
+        <input asp-for="Pin" class="form-control" />
+        <span asp-validation-for="Pin" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-3"></div>
+
+    <div class="col-md-6">
+        <label class="form-label">Senha</label>
+        <input asp-for="Password" type="password" class="form-control" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Confirmar senha</label>
+        <input asp-for="ConfirmPassword" type="password" class="form-control" />
+        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+    </div>
+
+    <div class="col-12">
+        <button class="btn btn-primary">Cadastrar</button>
+        <a asp-action="Login" class="btn btn-secondary">Voltar</a>
+    </div>
+</form>

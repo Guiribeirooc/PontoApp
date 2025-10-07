@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "Acesso negado";
+}
+<div class="alert alert-danger mt-3">
+    <h4 class="alert-heading">Acesso negado</h4>
+    <p>Você não tem permissão para acessar esta página.</p>
+    @if (!string.IsNullOrEmpty(ViewBag.ReturnUrl as string))
+    {
+        <p class="mb-0"><small>Rota solicitada: @ViewBag.ReturnUrl</small></p>
+    }
+</div>
+
+<div class="mt-3 d-flex gap-2">
+    <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Ir para Home</a>
+    @if (User?.Identity?.IsAuthenticated ?? false)
+    {
+        @* Para colaboradores, atalho pro próprio ponto *@
+        <a class="btn btn-secondary" asp-controller="Punch" asp-action="Meu">Meu Ponto</a>
+    }
+    else
+    {
+        <a class="btn btn-secondary" asp-controller="Account" asp-action="Login">Fazer login</a>
+    }
+</div>

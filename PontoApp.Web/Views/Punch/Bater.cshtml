@@ -1,0 +1,58 @@
+﻿@using PontoApp.Application.Services
+@{
+    ViewData["Title"] = "Bater Ponto";
+}
+
+<h2 class="mb-3">Bater Ponto</h2>
+
+<div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+<style>
+    .punch-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .75rem; 
+        align-items: center; 
+    }
+
+        .punch-row form {
+            margin: 0;
+        }
+
+    .punch-btn {
+        min-width: 180px; 
+        padding: .6rem 1rem; 
+        font-weight: 600;
+        border-radius: .5rem;
+    }
+
+    .btn-warning.punch-btn {
+        color: #3b2f00;
+    }
+</style>
+
+<div class="punch-row">
+    <form asp-action="Bater" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tipo" value="@PunchType.Entrada" />
+        <button class="btn btn-success punch-btn">Entrada</button>
+    </form>
+
+    <form asp-action="Bater" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tipo" value="@PunchType.SaidaAlmoco" />
+        <button class="btn btn-warning punch-btn">Saída para Almoço</button>
+    </form>
+
+    <form asp-action="Bater" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tipo" value="@PunchType.VoltaAlmoco" />
+        <button class="btn btn-info punch-btn">Volta do Almoço</button>
+    </form>
+
+    <form asp-action="Bater" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tipo" value="@PunchType.Saida" />
+        <button class="btn btn-danger punch-btn">Saída</button>
+    </form>
+</div>

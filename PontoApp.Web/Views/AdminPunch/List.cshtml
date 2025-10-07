@@ -1,0 +1,39 @@
+﻿@using PontoApp.Application.DTOs
+@model IEnumerable<PunchResultDto>
+
+@{
+    ViewData["Title"] = "Marcações do período";
+    var ini = (DateOnly)ViewBag.Inicio;
+    var fim = (DateOnly)ViewBag.Fim;
+    var empId = (int)ViewBag.EmployeeId;
+}
+
+<h2>Marcações do período</h2>
+<p>Colaborador: @empId | @ini.ToString("dd/MM/yyyy") - @fim.ToString("dd/MM/yyyy")</p>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Sem registros.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Tipo</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.OrderBy(x => x.DataHora))
+            {
+                <tr>
+                    <td>@r.DataHora.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    <td>@r.DataHora.ToLocalTime().ToString("HH:mm")</td>
+                    <td>@r.Tipo</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

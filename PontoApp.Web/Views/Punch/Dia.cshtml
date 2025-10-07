@@ -1,0 +1,109 @@
+@using PontoApp.Application.DTOs
+@using PontoApp.Application.Services
+@model IEnumerable<PunchResultDto>
+
+@{
+    ViewData["Title"] = "Registros do Dia";
+
+    string TipoLabel(PunchType t) => t switch
+    {
+        PunchType.Entrada => "Entrada",
+        PunchType.SaidaAlmoco => "Saída para Almoço",
+        PunchType.VoltaAlmoco => "Volta do Almoço",
+        PunchType.Saida => "Saída",
+        _ => t.ToString()
+    };
+
+    bool isAdmin = User.IsInRole("Admin");
+
+    var groups = isAdmin
+        ? Model.GroupBy(m => new { m.EmployeeId, m.EmployeePin, m.EmployeeNome }).OrderBy(g => g.Key.EmployeeNome).ToList()
+        : null;
+}
+
+<h2>Registros do Dia</h2>
+
+@if (isAdmin)
+{
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Colaborador</label>
+            <select name="employeeId" class="form-select">
+                @foreach (var item in (IEnumerable<SelectListItem>)ViewBag.Employees)
+                {
+                    var selected = (ViewBag.SelectedEmployeeId as int?)?.ToString() == item.Value ? "selected" : null;
+                    <option value="@item.Value" selected="@selected">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Dia</label>
+            <input type="date" name="dia" class="form-control"
+                   value="@(string.IsNullOrEmpty(Context.Request.Query["dia"])
+                                     ? DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")
+                                     : Context.Request.Query["dia"].ToString())" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100">Filtrar</button>
+        </div>
+    </form>
+}
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Nenhum registro para este dia.</div>
+}
+else if (isAdmin)
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th style="width: 40%">Colaborador</th>
+                <th style="width: 30%">Tipo</th>
+                <th style="width: 30%">Data/Hora</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in groups!)
+            {
+                var first = true;
+                var ordered = g.OrderBy(r => r.DataHora).ToList();
+
+                foreach (var r in ordered)
+                {
+                    <tr>
+                        @if (first)
+                        {
+                            <td rowspan="@ordered.Count" class="fw-semibold">
+                                <span class="text-muted">(@g.Key.EmployeePin)</span> @g.Key.EmployeeNome
+                            </td>
+                            first = false;
+                        }
+                        <td>@TipoLabel(r.Tipo)</td>
+                        <td>@r.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th style="width:50%">Tipo</th>
+                <th style="width:50%">Data/Hora</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.OrderBy(m => m.DataHora))
+            {
+                <tr>
+                    <td>@TipoLabel(r.Tipo)</td>
+                    <td>@r.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

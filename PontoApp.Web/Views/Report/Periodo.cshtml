@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Relatório por Período";
+}
+<h2>Relatório por Período</h2>
+<form method="post" asp-action="Periodo" class="row g-3">
+    <div class="col-auto">
+        <label class="form-label">Início</label>
+        <input type="date" name="inicio" class="form-control" value="@(((DateOnly)ViewBag.Inicio).ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Fim</label>
+        <input type="date" name="fim" class="form-control" value="@(((DateOnly)ViewBag.Fim).ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="col-auto">
+        <label class="form-label">Colaborador (opcional)</label>
+        <select name="employeeId" class="form-select">
+            <option value="">Todos</option>
+            @foreach (var e in (IEnumerable<SelectListItem>)ViewBag.Employees)
+            {
+                <option value="@e.Value">@e.Text</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto align-self-end">
+        <button class="btn btn-primary">Gerar</button>
+    </div>
+</form>

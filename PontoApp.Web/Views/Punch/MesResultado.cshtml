@@ -1,0 +1,79 @@
+﻿@using PontoApp.Application.DTOs
+@using PontoApp.Application.Services
+@model IEnumerable<PunchResultDto>
+
+@{
+    ViewData["Title"] = "Registros do Mês";
+
+    string TipoLabel(PunchType t) => t switch
+    {
+        PunchType.Entrada => "Entrada",
+        PunchType.SaidaAlmoco => "Saída para Almoço",
+        PunchType.VoltaAlmoco => "Volta do Almoço",
+        PunchType.Saida => "Saída",
+        _ => t.ToString()
+    };
+
+    bool isAdmin = User.IsInRole("Admin");
+
+    // Agrupamos por dia para ambos. Para Admin, mostraremos também a coluna de colaborador.
+    var gruposPorDia = Model
+        .GroupBy(r => DateOnly.FromDateTime(r.DataHora.ToLocalTime().Date))
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<h2>Registros do Mês</h2>
+
+@if (!gruposPorDia.Any())
+{
+    <div class="alert alert-info">Nenhum registro encontrado no período selecionado.</div>
+}
+else
+{
+    foreach (var dia in gruposPorDia)
+    {
+        <h5 class="mt-4">@dia.Key.ToString("dd/MM/yyyy")</h5>
+
+        <table class="table table-sm table-striped align-middle">
+            <thead>
+                <tr>
+                    @if (isAdmin)
+                    {
+                        <th style="width:40%">Colaborador</th>
+                        <th style="width:30%">Tipo</th>
+                        <th style="width:30%">Hora</th>
+                    }
+                    else
+                    {
+                        <th style="width:50%">Tipo</th>
+                        <th style="width:50%">Hora</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (isAdmin)
+                {
+                    foreach (var r in dia.OrderBy(x => x.EmployeeNome).ThenBy(x => x.DataHora))
+                    {
+                        <tr>
+                            <td><span class="text-muted">(@r.EmployeePin)</span> @r.EmployeeNome</td>
+                            <td>@TipoLabel(r.Tipo)</td>
+                            <td>@r.DataHora.ToLocalTime().ToString("HH:mm")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    foreach (var r in dia.OrderBy(x => x.DataHora))
+                    {
+                        <tr>
+                            <td>@TipoLabel(r.Tipo)</td>
+                            <td>@r.DataHora.ToLocalTime().ToString("HH:mm")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+}

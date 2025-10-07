@@ -1,0 +1,77 @@
+﻿@model PontoApp.Web.ViewModels.EmployeeFormViewModel
+@{
+    ViewData["Title"] = "Editar Colaborador(a)";
+}
+<h2>Editar Colaborador(a)</h2>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="FotoAtualPath" />
+
+    <div class="mb-3">
+        <label asp-for="Nome" class="form-label"></label>
+        <input asp-for="Nome" class="form-control" />
+        <span asp-validation-for="Nome" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label asp-for="Pin" class="form-label"></label>
+            <input asp-for="Pin" class="form-control" />
+            <span asp-validation-for="Pin" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="Cpf" class="form-label">CPF</label>
+            <input asp-for="Cpf" class="form-control" />
+            <span asp-validation-for="Cpf" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
+            <label asp-for="BirthDate" class="form-label">Data de Nascimento</label>
+            <input asp-for="BirthDate" class="form-control" type="date"
+                   max="@DateTime.Today.ToString("yyyy-MM-dd")"
+                   min="@DateTime.Today.AddYears(-110).ToString("yyyy-MM-dd")" />
+            <span asp-validation-for="BirthDate" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label">E-mail</label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="Ativo" class="form-check-input" />
+        <label asp-for="Ativo" class="form-check-label"></label>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.FotoAtualPath))
+    {
+        <div class="mb-3">
+            <label class="form-label">Foto atual</label><br />
+            <img src="@Model.FotoAtualPath" style="height:60px;border-radius:8px" />
+        </div>
+    }
+
+    <div class="mb-3">
+        <label class="form-label">Trocar foto (opcional)</label>
+        <input asp-for="Foto" type="file" accept="image/*" class="form-control" />
+        <span asp-validation-for="Foto" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="ShiftStart" class="form-label"></label>
+            <input asp-for="ShiftStart" type="time" class="form-control" />
+            <span asp-validation-for="ShiftStart" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="ShiftEnd" class="form-label"></label>
+            <input asp-for="ShiftEnd" type="time" class="form-control" />
+            <span asp-validation-for="ShiftEnd" class="text-danger"></span>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Salvar</button>
+    <a asp-action="Index" class="btn btn-light">Cancelar</a>
+</form>

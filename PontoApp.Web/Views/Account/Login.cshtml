@@ -1,0 +1,31 @@
+﻿@{
+    ViewData["Title"] = "Login";
+}
+
+<h2>Login</h2>
+
+<form asp-action="Login" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label for="email" class="form-label">E-mail</label>
+        <input type="email" name="email" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Senha</label>
+        <input type="password" name="password" class="form-control" required />
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="RememberMe" id="remember">
+        <label class="form-check-label" for="remember">Manter conectado</label>
+    </div>
+    <div class="text-center mt-3">
+        <a asp-action="ForgotPassword">Esqueci minha senha</a> ·
+        <a asp-action="RegisterEmployee">Cadastre-se</a>
+    </div>
+</form>
