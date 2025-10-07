@@ -198,7 +198,7 @@ public class AccountController : Controller
         var email = vm.Email.Trim().ToLowerInvariant();
         var user = await _users.GetByEmailAsync(email, ct);
 
-        var now = DateTimeOffset.UtcNow;
+        var now = DateTimeOffset.Now;
         var isInvalid =
             user is null ||
             user.IsDeleted ||

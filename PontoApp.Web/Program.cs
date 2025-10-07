@@ -1,10 +1,12 @@
-﻿using System.Security.Claims;             // ADDED
+﻿using System.Globalization;
+using System.Security.Claims;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authorization; // ADDED
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
 using PontoApp.Application.Services;
@@ -16,7 +18,11 @@ using PontoApp.Web.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllersWithViews()
+builder.Services
+    .AddControllersWithViews(options =>
+    {
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    })
     .AddViewOptions(o => o.HtmlHelperOptions.ClientValidationEnabled = true);
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
@@ -28,19 +34,20 @@ builder.Services.AddScoped<IClock, Clock>();
 builder.Services.AddScoped<IPunchService, PunchService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "keys")))
     .SetApplicationName("PontoApp");
-builder.Services.AddControllersWithViews()
-    .AddViewOptions(o => o.HtmlHelperOptions.ClientValidationEnabled = true);
 
-builder.Services.AddFluentValidationAutoValidation()         // valida no server e preenche ModelState
-                .AddFluentValidationClientsideAdapters();    // ativa mensagens client-side
-
-// registra todos os validators deste assembly
+builder.Services.AddFluentValidationAutoValidation(o =>
+{
+    o.DisableDataAnnotationsValidation = true;
+});
+builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterEmployeeViewModelValidator>();
 
-// ===== AUTHN (cookies) =====
+ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("pt-BR");
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
@@ -58,7 +65,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RequireAdmin", p => p.RequireClaim(ClaimTypes.Role, "Admin"))
     .AddPolicy("OwnEmployee", p => p.AddRequirements(new OwnEmployeeRequirement()));
-
 builder.Services.AddSingleton<IAuthorizationHandler, OwnEmployeeHandler>();
 
 var rules = builder.Configuration.GetSection("WorkRules");
@@ -67,6 +73,7 @@ var minLunch = rules.GetValue<int>("MinLunchMinutes", 60);
 var lunchStart = TimeSpan.Parse(rules.GetValue<string>("LunchWindowStart", "11:00"));
 var lunchEnd = TimeSpan.Parse(rules.GetValue<string>("LunchWindowEnd", "15:00"));
 var maxDaily = rules.GetValue<double>("MaxDailyHours", 10);
+
 builder.Services.AddScoped<IReportService>(sp =>
     new ReportService(
         sp.GetRequiredService<IPunchRepository>(),
@@ -74,12 +81,20 @@ builder.Services.AddScoped<IReportService>(sp =>
         new WorkRules(rounding, minLunch, lunchStart, lunchEnd, maxDaily)
     ));
 
+builder.Services.AddLocalization();
+
 var app = builder.Build();
+
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture("pt-BR"),
+    SupportedCultures = new[] { new CultureInfo("pt-BR") },
+    SupportedUICultures = new[] { new CultureInfo("pt-BR") }
+});
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
     if (!db.Employees.Any())
     {
         var cfg = app.Configuration.GetSection("BootstrapAdmin");
@@ -90,7 +105,7 @@ using (var scope = app.Services.CreateScope())
                 Nome = cfg.GetValue<string>("Name", "Admin"),
                 Pin = cfg.GetValue<string>("Pin", "9999"),
                 Ativo = true,
-                IsAdmin = true 
+                IsAdmin = true
             });
             db.SaveChanges();
         }
@@ -151,6 +166,5 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
-
 
 app.Run();

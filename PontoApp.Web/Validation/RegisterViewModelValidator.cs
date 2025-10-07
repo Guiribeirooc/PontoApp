@@ -8,11 +8,12 @@ namespace PontoApp.Web.Validation
         public RegisterViewModelValidator()
         {
             RuleFor(x => x.Email)
-                .NotEmpty()
-                .EmailAddress(FluentValidation.Validators.EmailValidationMode.Net4xRegex);
+                .NotEmpty().WithMessage("Informe o e-mail.")
+                .EmailAddress(FluentValidation.Validators.EmailValidationMode.Net4xRegex)
+                .WithMessage("E-mail inválido.");
 
             RuleFor(x => x.Password)
-                .NotEmpty()
+                .NotEmpty().WithMessage("Informe a senha.")
                 .Matches(PasswordRules.StrongPasswordRegex)
                 .WithMessage(PasswordRules.StrongPasswordMessage);
         }

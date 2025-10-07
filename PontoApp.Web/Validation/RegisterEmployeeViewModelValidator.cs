@@ -14,14 +14,15 @@ namespace PontoApp.Web.Validation
 
             RuleFor(x => x.Pin)
                 .NotEmpty().WithMessage("Informe o PIN.")
-                .MaximumLength(10);
+                .Length(4, 10).WithMessage("O PIN deve ter entre {MinLength} e {MaxLength} caracteres.");
 
             RuleFor(x => x.Password)
-                .NotEmpty()
+                .NotEmpty().WithMessage("Informe a senha.")
                 .Matches(PasswordRules.StrongPasswordRegex)
                 .WithMessage(PasswordRules.StrongPasswordMessage);
 
             RuleFor(x => x.ConfirmPassword)
+                .NotEmpty().WithMessage("Confirme a senha.")
                 .Equal(x => x.Password)
                 .WithMessage("As senhas não conferem.");
         }
