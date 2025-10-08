@@ -1,0 +1,27 @@
+﻿@model PontoApp.Domain.Entities.Leave
+@using PontoApp.Domain.Enums
+@{
+    ViewData["Title"] = "Novo afastamento";
+}
+<h2>Novo afastamento</h2>
+<form method="post">
+    @Html.AntiForgeryToken()
+    <div class="mb-2">
+        <label class="form-label">Colaborador (Id)</label>
+        <input asp-for="EmployeeId" class="form-control" />
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Tipo</label>
+        <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<LeaveType>()"></select>
+    </div>
+    <div class="row g-2 mb-2">
+        <div class="col"><label class="form-label">Início</label><input asp-for="Start" type="date" class="form-control" /></div>
+        <div class="col"><label class="form-label">Fim</label><input asp-for="End" type="date" class="form-control" /></div>
+    </div>
+    <div class="mb-2">
+        <label class="form-label">Observações</label>
+        <input asp-for="Notes" class="form-control" />
+    </div>
+    <button class="btn btn-primary">Salvar</button>
+    <a asp-action="Index" class="btn btn-light">Cancelar</a>
+</form>

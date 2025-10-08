@@ -53,30 +53,46 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        var email = vm.Email.Trim().ToLowerInvariant();
+        var email = (vm.Email ?? string.Empty).Trim().ToLowerInvariant();
         var user = await _users.GetByEmailAsync(email, ct);
 
         if (user is null || user.IsDeleted ||
             !PasswordHasher.Verify(vm.Password, user.PasswordHash, user.PasswordSalt))
         {
-            ModelState.AddModelError("", "E-mail ou senha inválidos.");
+            ModelState.AddModelError(string.Empty, "E-mail ou senha inválidos.");
             return View(vm);
         }
 
-        var isAdmin = !string.IsNullOrEmpty(_masterEmail) &&
+        var isAdmin = !string.IsNullOrWhiteSpace(_masterEmail) &&
                       string.Equals(user.Email, _masterEmail, StringComparison.OrdinalIgnoreCase);
 
-        var claims = new List<Claim>
+        // Nome a exibir (fallback = e-mail)
+        var displayName = user.Email;
+
+        if (!isAdmin && user.EmployeeId.HasValue)
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Email),
-            new(ClaimTypes.Role, isAdmin ? "Admin" : "Employee")
-        };
+            var empName = await _emps.Query()
+                .Where(e => e.Id == user.EmployeeId.Value && e.Ativo && !e.IsDeleted)
+                .Select(e => e.Nome)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(empName))
+                displayName = empName;
+        }
+
+        var claims = new List<Claim>
+    {
+        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new(ClaimTypes.Name, displayName),
+        new(ClaimTypes.Email, user.Email),
+        new(ClaimTypes.Role, isAdmin ? "Admin" : "Employee")
+    };
 
         if (!isAdmin && user.EmployeeId.HasValue)
             claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
 
         var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(id),

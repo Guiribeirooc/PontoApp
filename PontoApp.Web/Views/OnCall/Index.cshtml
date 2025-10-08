@@ -1,0 +1,23 @@
+﻿@model List<PontoApp.Domain.Entities.OnCallPeriod>
+@{
+    ViewData["Title"] = "Sobreaviso";
+    int id = (int)ViewBag.Id;
+}
+<h2>Sobreaviso</h2>
+<form asp-action="Add" method="post" class="row g-2 mb-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@id" />
+    <div class="col-auto"><input name="start" type="datetime-local" class="form-control" /></div>
+    <div class="col-auto"><input name="end" type="datetime-local" class="form-control" /></div>
+    <div class="col-auto"><input name="notes" class="form-control" placeholder="Notas (opcional)" /></div>
+    <div class="col-auto"><button class="btn btn-primary">Adicionar</button></div>
+</form>
+<table class="table table-sm">
+    <thead><tr><th>Início</th><th>Fim</th><th>Notas</th></tr></thead>
+    <tbody>
+        @foreach (var p in Model)
+        {
+            <tr><td>@p.Start.ToString("dd/MM/yyyy HH:mm")</td><td>@p.End.ToString("dd/MM/yyyy HH:mm")</td><td>@p.Notes</td></tr>
+        }
+    </tbody>
+</table>

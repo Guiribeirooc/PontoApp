@@ -27,9 +27,11 @@
         <tr>
             <th>Foto</th>
             <th>Nome</th>
+            <th>CPF</th>
             <th>PIN</th>
+            <th>Jornada</th>
             <th>Status</th>
-            <th style="width:200px"></th>
+            <th style="width:200px">Ações</th>
         </tr>
     </thead>
     <tbody>
@@ -40,20 +42,19 @@
                 <td>
                     @if (!string.IsNullOrEmpty(e.PhotoPath))
                     {
-                        <img src="@e.PhotoPath"
-                             alt="Foto de @e.Nome"
-                             class="emp-photo-thumb"
-                             data-full="@e.PhotoPath" />
+                        <img src="@e.PhotoPath" alt="Foto de @e.Nome"
+                             class="emp-photo-thumb" data-full="@e.PhotoPath" />
                     }
                 </td>
                 <td>@e.Nome</td>
-                <td>@e.Cpf</td>
+                <td>@e.Cpf.ToCpfMasked()</td>
                 <td>@e.Pin</td>
+                <td>@e.Jornada</td>
                 <td>@(e.Ativo ? "Ativa" : "Inativa")</td>
                 <td>
                     <div class="d-flex gap-2">
                         <a asp-action="Edit" asp-route-id="@e.Id" class="btn btn-sm btn-secondary">Editar</a>
-
+                        <a asp-action="Details" asp-route-id="@e.Id" class="btn btn-sm btn-info">Detalhes</a>
                         <form asp-action="ToggleStatus" asp-route-id="@e.Id" method="post" class="m-0">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-sm @(e.Ativo ? "btn-warning" : "btn-success")">
@@ -65,13 +66,13 @@
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-sm btn-danger">Excluir</button>
                         </form>
-
                     </div>
                 </td>
             </tr>
         }
     </tbody>
 </table>
+
 
 <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -90,7 +91,6 @@
           const modalImg = document.getElementById('photoModalImg');
           const modalCaption = document.getElementById('photoModalCaption');
 
-          // Bootstrap 5
           const bsModal = new bootstrap.Modal(modalEl);
 
           document.querySelectorAll('.emp-photo-thumb').forEach(img => {

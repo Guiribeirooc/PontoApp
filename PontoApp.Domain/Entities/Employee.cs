@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using PontoApp.Domain.Enums;
 
 namespace PontoApp.Domain.Entities
 {
@@ -18,6 +19,23 @@ namespace PontoApp.Domain.Entities
         public DateTimeOffset? DeletedAt { get; set; }
         public bool IsAdmin { get; set; }
         public ICollection<Punch> Punches { get; set; } = new List<Punch>();
+        public WorkScheduleKind Jornada { get; set; } = WorkScheduleKind.Integral;
+        public string? Phone { get; set; }
+        public string? NisPis { get; set; }
+        public string? City { get; set; }
+        public string? State { get; set; }
+        public string? Departamento { get; set; }
+        public string? Cargo { get; set; }
+        public string? Matricula { get; set; }
+        public decimal? HourlyRate { get; set; }
+        public DateOnly? AdmissionDate { get; set; }
+        public bool HasTimeBank { get; set; } 
+        public DateOnly? TrackingStart { get; set; }
+        public DateOnly? TrackingEnd { get; set; }
+        public DateOnly? VacationAccrualStart { get; set; }
+        public string? ManagerName { get; set; } 
+        public string? EmployerName { get; set; } 
+        public string? UnitName { get; set; }
     }
 }
 

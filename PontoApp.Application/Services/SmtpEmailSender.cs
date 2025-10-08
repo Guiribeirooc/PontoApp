@@ -3,7 +3,7 @@ using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using PontoApp.Application.Contracts;
 
-namespace PontoApp.Infrastructure.Services
+namespace PontoApp.Application.Services
 {
     public class SmtpEmailSender(IConfiguration cfg) : IEmailSender
     {

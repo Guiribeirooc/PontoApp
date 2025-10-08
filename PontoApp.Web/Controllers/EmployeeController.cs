@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using PontoApp.Domain.Entities;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Web.ViewModels;
+using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Web.Controllers;
 
 [Authorize(Policy = "RequireAdmin")]
 public class EmployeeController : Controller
 {
+    private readonly AppDbContext _db;
     private readonly IEmployeeRepository _repo;
     private readonly IPunchRepository _punchRepo;
     private readonly IWebHostEnvironment _env;
@@ -17,11 +19,12 @@ public class EmployeeController : Controller
     private static readonly HashSet<string> PhotoExtWhitelist = new(StringComparer.OrdinalIgnoreCase)
         { ".jpg", ".jpeg", ".png", ".webp" };
 
-    public EmployeeController(IEmployeeRepository repo, IPunchRepository punchRepo, IWebHostEnvironment env)
+    public EmployeeController(IEmployeeRepository repo, IPunchRepository punchRepo, IWebHostEnvironment env, AppDbContext db)
     {
         _repo = repo;
         _punchRepo = punchRepo;
         _env = env;
+        _db = db;
     }
 
     [HttpGet]
@@ -104,7 +107,8 @@ public class EmployeeController : Controller
             BirthDate = vm.BirthDate,
             Ativo = vm.Ativo,
             ShiftStart = ParseTimeOrNull(vm.ShiftStart),
-            ShiftEnd = ParseTimeOrNull(vm.ShiftEnd)
+            ShiftEnd = ParseTimeOrNull(vm.ShiftEnd),
+            Jornada = vm.Jornada
         };
 
         if (vm.Foto is { Length: > 0 })
@@ -142,7 +146,8 @@ public class EmployeeController : Controller
             Ativo = emp.Ativo,
             FotoAtualPath = emp.PhotoPath,
             ShiftStart = emp.ShiftStart?.ToString("HH:mm"),
-            ShiftEnd = emp.ShiftEnd?.ToString("HH:mm")
+            ShiftEnd = emp.ShiftEnd?.ToString("HH:mm"),
+            Jornada = emp.Jornada
         };
 
         return View(vm);
@@ -179,6 +184,7 @@ public class EmployeeController : Controller
         emp.Ativo = vm.Ativo;
         emp.ShiftStart = ParseTimeOrNull(vm.ShiftStart);
         emp.ShiftEnd = ParseTimeOrNull(vm.ShiftEnd);
+        emp.Jornada = vm.Jornada;
 
         if (vm.Foto is { Length: > 0 })
         {
@@ -247,6 +253,45 @@ public class EmployeeController : Controller
 
         TempData["ok"] = "Colaborador(a) removido(a).";
         return RedirectToAction(nameof(Index));
+    }
+
+     [HttpGet]
+    public async Task<IActionResult> Details(int id, CancellationToken ct)
+    {
+        var e = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (e is null) return NotFound();
+
+        var vm = new EmployeeDetailsViewModel
+        {
+            Id = e.Id,
+            Nome = e.Nome,
+            PhotoUrl = string.IsNullOrWhiteSpace(e.PhotoPath) ? null : e.PhotoPath,
+            Cpf = e.Cpf,
+            BirthDate = e.BirthDate,
+            Email = e.Email,
+            Phone = e.Phone,               // se não existir, remova esta linha
+            NisPis = e.NisPis,             // idem
+            Cidade = e.City,               // idem
+            Estado = e.State,              // idem
+            Departamento = e.Departamento, // idem
+            Cargo = e.Cargo,               // idem
+            Matricula = e.Matricula,       // idem
+            ValorHora = e.HourlyRate,      // idem
+            Admissao = e.AdmissionDate,    // idem
+            BancoHorasHabilitado = e.HasTimeBank, // bool? -> bool
+            InicioRegistro = e.TrackingStart,     // idem
+            FimRegistro = e.TrackingEnd,          // idem
+            InicioAquisitivoFerias = e.VacationAccrualStart, // idem
+            Gestor = e.ManagerName,       // idem
+            Empregador = e.EmployerName,  // idem
+            Unidade = e.UnitName,         // idem
+            Jornada = e.Jornada,
+            ShiftStart = e.ShiftStart,
+            ShiftEnd = e.ShiftEnd,
+            TimeZoneDisplay = "São Paulo, Brasil"
+        };
+
+        return View(vm);
     }
 
 

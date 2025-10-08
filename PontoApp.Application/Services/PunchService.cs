@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
 using PontoApp.Application.DTOs;
+using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
 
 namespace PontoApp.Application.Services;
@@ -46,8 +47,15 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
     {
         var emp = await _empRepo.Query()
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Pin == pin && e.Ativo && !e.IsDeleted, ct) ?? throw new InvalidOperationException("Colaborador(a) não encontrado(a) ou PIN inválido.");
-        var now = _clock.NowSp(); 
+            .FirstOrDefaultAsync(e => e.Pin == pin && e.Ativo && !e.IsDeleted, ct)
+            ?? throw new InvalidOperationException("Colaborador(a) não encontrado(a) ou PIN inválido.");
+
+        var now = _clock.NowSp();
+
+        bool lunchMandatory =
+            emp.Jornada != WorkScheduleKind.Parcial &&
+            emp.Jornada != WorkScheduleKind.Intermitente &&
+            emp.Jornada != WorkScheduleKind.Estagiario;
 
         var tz = GetBrTz();
         var (ini, fim) = DiaRange(DateOnly.FromDateTime(now.Date), tz);
@@ -69,14 +77,14 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
         if (tipo == PunchType.Saida && punchesHoje.Any(p => p.Tipo == PunchType.Saida))
             throw new InvalidOperationException("Já existe uma marcação de Saída para hoje.");
 
-        var minLunch = TimeSpan.FromMinutes(60); 
+        var minLunch = TimeSpan.FromMinutes(60);
 
         if (tipo == PunchType.SaidaAlmoco)
         {
             var ultimaEntradaOuVolta = punchesHoje
                 .Where(p => p.Tipo == PunchType.Entrada || p.Tipo == PunchType.VoltaAlmoco)
                 .LastOrDefault() ?? throw new InvalidOperationException("Não é possível registrar Saída para Almoço sem uma Entrada/Volta do Almoço anterior no dia.");
-            
+
             var diff = now - ultimaEntradaOuVolta.DataHora;
             if (diff < minLunch)
                 throw new InvalidOperationException($"A Saída para Almoço só pode ser registrada após {minLunch.TotalMinutes:0} minutos da última Entrada/Volta.");
@@ -84,22 +92,24 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
 
         if (tipo == PunchType.VoltaAlmoco)
         {
-            var ultimaSaidaAlmoco = punchesHoje.LastOrDefault(p => p.Tipo == PunchType.SaidaAlmoco) ?? throw new InvalidOperationException("Não é possível registrar Volta do Almoço sem uma Saída para Almoço anterior no dia.");
+            var ultimaSaidaAlmoco = punchesHoje.LastOrDefault(p => p.Tipo == PunchType.SaidaAlmoco)
+                ?? throw new InvalidOperationException("Não é possível registrar Volta do Almoço sem uma Saída para Almoço anterior no dia.");
+
             var diff = now - ultimaSaidaAlmoco.DataHora;
             if (diff < minLunch)
                 throw new InvalidOperationException($"A Volta do Almoço só pode ser registrada após {minLunch.TotalMinutes:0} minutos da Saída para Almoço.");
         }
 
-        if (tipo == PunchType.Saida)
+        if (tipo == PunchType.Saida && lunchMandatory)
         {
             var saidaAlmoco = punchesHoje.LastOrDefault(p => p.Tipo == PunchType.SaidaAlmoco);
-            var VoltaAlmoco = punchesHoje.LastOrDefault(p => p.Tipo == PunchType.VoltaAlmoco);
-            
-            if (saidaAlmoco is null && VoltaAlmoco is null)
-                throw new InvalidOperationException("Não é possível registrar Saída sem registro para Saida e Volta do Almoço no dia.");
+            var voltaAlmoco = punchesHoje.LastOrDefault(p => p.Tipo == PunchType.VoltaAlmoco);
 
-            if (VoltaAlmoco is null)
-                throw new InvalidOperationException("Não é possível registrar Saída sem registro da Volta do Almoço no dia.");
+            if (saidaAlmoco is null && voltaAlmoco is null)
+                throw new InvalidOperationException("Para sua jornada, é obrigatório registrar a Saída e a Volta do Almoço antes de registrar a Saída.");
+
+            if (voltaAlmoco is null)
+                throw new InvalidOperationException("Para sua jornada, é obrigatório registrar a Volta do Almoço antes da Saída.");
         }
 
         var punch = new Punch
@@ -111,7 +121,7 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
         };
 
         await _punchRepo.AddAsync(punch, ct);
-        await _punchRepo.SaveChangesAsync(ct); 
+        await _punchRepo.SaveChangesAsync(ct);
 
         return new PunchResultDto(
             punch.Id,
@@ -144,14 +154,14 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
         var punch = new Punch
         {
             EmployeeId = employeeId,
-            DataHora = dataHora,      
+            DataHora = dataHora,
             Tipo = tipo,
             Justificativa = justificativa,
             Origem = "Manual(Admin)"
         };
 
         await _punchRepo.AddAsync(punch, ct);
-        await _punchRepo.SaveChangesAsync(ct); 
+        await _punchRepo.SaveChangesAsync(ct);
 
         return new PunchResultDto(
             punch.Id,
@@ -191,7 +201,7 @@ public class PunchService(IEmployeeRepository empRepo, IPunchRepository punchRep
     {
         var tz = GetBrTz();
         var ini = DiaRange(inicio, tz).ini;
-        var end = DiaRange(fim, tz).fim; 
+        var end = DiaRange(fim, tz).fim;
 
         var q =
             from p in _punchRepo.Query()

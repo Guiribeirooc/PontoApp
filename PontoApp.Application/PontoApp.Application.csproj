@@ -6,8 +6,10 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.9" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PontoApp.Domain\PontoApp.Domain.csproj" />
+    <ProjectReference Include="..\PontoApp.Infrastructure\PontoApp.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

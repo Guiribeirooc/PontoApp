@@ -1,0 +1,34 @@
+﻿@model List<PontoApp.Domain.Entities.TimeBankEntry>
+@{
+    ViewData["Title"] = "Banco de horas";
+    int saldo = (int)ViewBag.Saldo;
+    int empId = (int)ViewBag.Id;
+    DateOnly de = (DateOnly)ViewBag.De, ate = (DateOnly)ViewBag.Ate;
+}
+<h2>Banco de horas</h2>
+
+<p><strong>Período:</strong> @de.ToString("dd/MM/yyyy") – @ate.ToString("dd/MM/yyyy")</p>
+<p><strong>Saldo:</strong> @(TimeSpan.FromMinutes(Math.Abs(saldo)).ToString(@"hh\:mm")) @(saldo >= 0 ? "+" : "-")</p>
+
+<form asp-action="Ajuste" method="post" class="row g-2 mb-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@empId" />
+    <div class="col-auto"><input name="minutes" type="number" class="form-control" placeholder="minutos (+/-)"></div>
+    <div class="col-auto"><input name="reason" class="form-control" placeholder="Motivo"></div>
+    <div class="col-auto"><button class="btn btn-primary">Lançar ajuste</button></div>
+</form>
+
+<table class="table table-sm">
+    <thead><tr><th>Data</th><th>Min</th><th>Motivo</th><th>Origem</th></tr></thead>
+    <tbody>
+        @foreach (var e in Model)
+        {
+            <tr>
+                <td>@e.At.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@e.Minutes</td>
+                <td>@e.Reason</td>
+                <td>@e.Source</td>
+            </tr>
+        }
+    </tbody>
+</table>

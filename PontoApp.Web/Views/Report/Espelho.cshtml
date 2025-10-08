@@ -1,0 +1,30 @@
+﻿@model List<PontoApp.Web.ViewModels.EspelhoDiaViewModel>
+@{
+    ViewData["Title"] = "Espelho de ponto";
+}
+<h2>Espelho de ponto</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Dia</th>
+            <th>Marcações</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var d in Model)
+        {
+            <tr>
+                <td>@d.Dia.ToString("dd/MM/yyyy")</td>
+                <td>
+                    @foreach (var m in d.Marcas)
+                    {
+                        <span class="badge bg-light text-dark me-1">
+                            @m.Tipo - @m.Hora.ToString("HH\\:mm")
+                        </span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

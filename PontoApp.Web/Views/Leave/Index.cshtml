@@ -1,0 +1,21 @@
+﻿@model List<PontoApp.Domain.Entities.Leave>
+@using PontoApp.Domain.Enums
+@{
+    ViewData["Title"] = "Afastamentos";
+}
+<h2>Afastamentos</h2>
+<p><a class="btn btn-primary" asp-action="Create">Novo afastamento</a></p>
+<table class="table table-striped">
+    <thead><tr><th>Empregado</th><th>Tipo</th><th>Período</th><th>Status</th></tr></thead>
+    <tbody>
+        @foreach (var l in Model)
+        {
+            <tr>
+                <td>@l.EmployeeId</td>
+                <td>@l.Type</td>
+                <td>@l.Start.ToString("dd/MM/yyyy") - @l.End.ToString("dd/MM/yyyy")</td>
+                <td>@l.Status</td>
+            </tr>
+        }
+    </tbody>
+</table>

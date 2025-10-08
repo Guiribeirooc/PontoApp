@@ -13,7 +13,6 @@ using PontoApp.Application.Services;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Infrastructure.EF;
 using PontoApp.Infrastructure.Repositories;
-using PontoApp.Infrastructure.Services;
 using PontoApp.Web.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +33,10 @@ builder.Services.AddScoped<IClock, Clock>();
 builder.Services.AddScoped<IPunchService, PunchService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<ITimeBankService, TimeBankService>();
+builder.Services.AddScoped<ILeaveService, LeaveService>();
+builder.Services.AddScoped<IScheduleService, ScheduleService>();
+builder.Services.AddScoped<IOnCallService, OnCallService>();
 
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "keys")))

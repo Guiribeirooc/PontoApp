@@ -2,17 +2,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.DTOs;
 using PontoApp.Application.Services;
 using PontoApp.Domain.Interfaces;
+using PontoApp.Infrastructure.Repositories;
+using PontoApp.Web.ViewModels;
 
 namespace PontoApp.Web.Controllers;
 
 [Authorize(Policy = "RequireAdmin")]
-public class ReportController(IReportService report, IEmployeeRepository empRepo) : Controller
+public class ReportController(IReportService report, IEmployeeRepository empRepo, IPunchRepository punchRepo) : Controller
 {
     private readonly IReportService _report = report;
     private readonly IEmployeeRepository _empRepo = empRepo;
+    private readonly IPunchRepository _punchRepo = punchRepo;
 
     [HttpGet]
     public IActionResult Periodo()
@@ -121,5 +125,38 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
         ViewBag.Fim = fim;
 
         return View("Periodo");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Espelho(int id, DateOnly? de, DateOnly? ate, CancellationToken ct)
+    {
+        var start = de ?? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var end = ate ?? start.AddMonths(1).AddDays(-1);
+
+        var fromDt = start.ToDateTime(TimeOnly.MinValue);
+        var toDt = end.ToDateTime(TimeOnly.MaxValue);
+
+        var punches = await _punchRepo.Query()
+            .Where(p => p.EmployeeId == id
+                     && p.DataHora.LocalDateTime >= fromDt
+                     && p.DataHora.LocalDateTime <= toDt)
+            .OrderBy(p => p.DataHora)
+            .ToListAsync(ct);
+
+        var dias = punches
+            .GroupBy(p => DateOnly.FromDateTime(p.DataHora.LocalDateTime))
+            .OrderBy(g => g.Key)
+            .Select(g => new EspelhoDiaViewModel
+            {
+                Dia = g.Key,
+                Marcas = g.Select(m => new MarcaVm
+                {
+                    Tipo = m.Tipo,
+                    Hora = m.DataHora.LocalDateTime
+                }).ToList()
+            })
+            .ToList();
+
+        return View(dias);
     }
 }

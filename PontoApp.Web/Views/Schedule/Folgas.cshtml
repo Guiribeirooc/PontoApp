@@ -1,0 +1,22 @@
+﻿@model List<PontoApp.Domain.Entities.DayOff>
+@{
+    ViewData["Title"] = "Escala de folgas";
+    int id = (int)ViewBag.Id; DateOnly de = (DateOnly)ViewBag.De; DateOnly ate = (DateOnly)ViewBag.Ate;
+}
+<h2>Escala de folgas</h2>
+<form asp-action="AddFolga" method="post" class="row g-2 mb-3">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@id" />
+    <div class="col-auto"><input name="date" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" /></div>
+    <div class="col-auto"><input name="reason" class="form-control" placeholder="Motivo (opcional)" /></div>
+    <div class="col-auto"><button class="btn btn-primary">Adicionar folga</button></div>
+</form>
+<table class="table table-sm">
+    <thead><tr><th>Data</th><th>Motivo</th></tr></thead>
+    <tbody>
+        @foreach (var d in Model)
+        {
+            <tr><td>@d.Date.ToString("dd/MM/yyyy")</td><td>@d.Reason</td></tr>
+        }
+    </tbody>
+</table>

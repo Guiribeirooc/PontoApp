@@ -1,4 +1,6 @@
-﻿@model PontoApp.Web.ViewModels.EmployeeFormViewModel
+﻿@using PontoApp.Domain.Enums
+@using PontoApp.Web.Utils 
+@model PontoApp.Web.ViewModels.EmployeeFormViewModel
 @{
     ViewData["Title"] = "Editar Colaborador(a)";
 }
@@ -16,13 +18,31 @@
 
     <div class="row">
         <div class="col-md-4 mb-3">
+            <label asp-for="Jornada" class="form-label">Tipo de jornada</label>
+            <select asp-for="Jornada" class="form-select">
+                <option value="@WorkScheduleKind.Integral">Jornada integral (8h/44h)</option>
+                <option value="@WorkScheduleKind.Parcial">Jornada parcial</option>
+                <option value="@WorkScheduleKind.DozePorTrintaSeis">Jornada 12x36</option>
+                <option value="@WorkScheduleKind.Noturna">Jornada noturna (22h–05h)</option>
+                <option value="@WorkScheduleKind.Remota">Jornada remota (home office)</option>
+                <option value="@WorkScheduleKind.Intermitente">Jornada intermitente</option>
+                <option value="@WorkScheduleKind.Estagiario">Jornada de estagiário</option>
+            </select>
+            <span asp-validation-for="Jornada" class="text-danger"></span>
+        </div>
+        <div class="col-md-4 mb-3">
             <label asp-for="Pin" class="form-label"></label>
             <input asp-for="Pin" class="form-control" />
             <span asp-validation-for="Pin" class="text-danger"></span>
         </div>
         <div class="col-md-4 mb-3">
             <label asp-for="Cpf" class="form-label">CPF</label>
-            <input asp-for="Cpf" class="form-control" />
+            <input asp-for="Cpf"
+                   class="form-control cpf-mask"
+                   inputmode="numeric"
+                   maxlength="14"
+                   autocomplete="off"
+                   value="@(Model?.Cpf.ToCpfMasked())" />
             <span asp-validation-for="Cpf" class="text-danger"></span>
         </div>
         <div class="col-md-4 mb-3">
@@ -75,3 +95,44 @@
     <button class="btn btn-primary" type="submit">Salvar</button>
     <a asp-action="Index" class="btn btn-light">Cancelar</a>
 </form>
+@section Scripts {
+    <script>
+        // CPF mask
+        document.addEventListener('input', function (e) {
+          if (!e.target.classList.contains('cpf-mask')) return;
+          let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+          v = v.replace(/(\d{3})(\d)/, '$1.$2')
+               .replace(/(\d{3})(\d)/, '$1.$2')
+               .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+          e.target.value = v;
+        });
+
+        const jornadaSel = document.querySelector('[name="Jornada"]');
+        const start = document.querySelector('[name="ShiftStart"]');
+        const end   = document.querySelector('[name="ShiftEnd"]');
+
+        function setTime(s, e) {
+          if (start && !start.value) start.value = s;
+          if (end && !end.value) end.value = e;
+        }
+
+        function onJornadaChange() {
+          const v = parseInt(jornadaSel.value, 10);
+          switch (v) {
+            case 0: /* Integral */            setTime('08:00', '17:00'); break;
+            case 1: /* Parcial */             setTime('08:00', '14:00'); break;
+            case 2: /* 12x36 */               setTime('07:00', '19:00'); break;
+            case 3: /* Noturna */             setTime('22:00', '05:00'); break;
+            case 4: /* Remota */              setTime('08:00', '17:00'); break;
+            case 5: /* Intermitente */        /* horários definidos por convocação */ break;
+            case 6: /* Estagiário */          setTime('09:00', '15:00'); break;
+          }
+        }
+
+        if (jornadaSel) {
+          jornadaSel.addEventListener('change', onJornadaChange);
+          // só sugere caso a view venha vazia
+          if (!start.value && !end.value) onJornadaChange();
+        }
+    </script>
+}

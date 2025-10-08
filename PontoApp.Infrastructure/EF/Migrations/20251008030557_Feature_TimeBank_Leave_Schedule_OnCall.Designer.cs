@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontoApp.Infrastructure.EF;
 
 #nullable disable
 
-namespace PontoApp.Infrastructure.Migrations
+namespace PontoApp.Infrastructure.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251008030557_Feature_TimeBank_Leave_Schedule_OnCall")]
+    partial class Feature_TimeBank_Leave_Schedule_OnCall
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,16 +35,13 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsDeleted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<byte[]>("PasswordHash")
                         .IsRequired()
@@ -52,20 +52,16 @@ namespace PontoApp.Infrastructure.Migrations
                         .HasColumnType("varbinary(max)");
 
                     b.Property<string>("ResetCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTimeOffset?>("ResetCodeExpiresAt")
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
-
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.DayOff", b =>
@@ -102,24 +98,11 @@ namespace PontoApp.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateOnly?>("AdmissionDate")
-                        .HasColumnType("date");
-
                     b.Property<bool>("Ativo")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<DateOnly>("BirthDate")
                         .HasColumnType("date");
-
-                    b.Property<string>("Cargo")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("Cpf")
                         .IsRequired()
@@ -129,30 +112,13 @@ namespace PontoApp.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("Departamento")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(160)
                         .HasColumnType("nvarchar(160)");
 
-                    b.Property<string>("EmployerName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<bool>("HasTimeBank")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("HourlyRate")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<bool>("IsAdmin")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -160,26 +126,10 @@ namespace PontoApp.Infrastructure.Migrations
                     b.Property<int>("Jornada")
                         .HasColumnType("int");
 
-                    b.Property<string>("ManagerName")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("Matricula")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("NisPis")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("PhotoPath")
                         .HasMaxLength(400)
@@ -196,23 +146,6 @@ namespace PontoApp.Infrastructure.Migrations
                     b.Property<TimeSpan?>("ShiftStart")
                         .HasColumnType("time");
 
-                    b.Property<string>("State")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<DateOnly?>("TrackingEnd")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly?>("TrackingStart")
-                        .HasColumnType("date");
-
-                    b.Property<string>("UnitName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<DateOnly?>("VacationAccrualStart")
-                        .HasColumnType("date");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Cpf")
@@ -228,7 +161,7 @@ namespace PontoApp.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[IsDeleted] = 0 AND [Pin] IS NOT NULL");
 
-                    b.ToTable("Employees", (string)null);
+                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.Leave", b =>
@@ -280,14 +213,14 @@ namespace PontoApp.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("End")
-                        .HasColumnType("date");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime>("Start")
-                        .HasColumnType("date");
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -305,7 +238,7 @@ namespace PontoApp.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("At")
-                        .HasColumnType("date");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
@@ -345,8 +278,7 @@ namespace PontoApp.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Ip")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Justificativa")
                         .HasMaxLength(300)
@@ -363,15 +295,14 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId");
 
-                    b.ToTable("Punches", (string)null);
+                    b.ToTable("Punches");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.AppUser", b =>
                 {
                     b.HasOne("PontoApp.Domain.Entities.Employee", "Employee")
                         .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("EmployeeId");
 
                     b.Navigation("Employee");
                 });
