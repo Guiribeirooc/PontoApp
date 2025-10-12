@@ -81,14 +81,100 @@
 
     <div class="row">
         <div class="col-md-6 mb-3">
-            <label asp-for="ShiftStart" class="form-label"></label>
+            <label asp-for="ShiftStart" class="form-label">Início Jornada</label>
             <input asp-for="ShiftStart" type="time" class="form-control" />
             <span asp-validation-for="ShiftStart" class="text-danger"></span>
         </div>
         <div class="col-md-6 mb-3">
-            <label asp-for="ShiftEnd" class="form-label"></label>
+            <label asp-for="ShiftEnd" class="form-label">Término Jornada</label>
             <input asp-for="ShiftEnd" type="time" class="form-control" />
             <span asp-validation-for="ShiftEnd" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h4>Contato</h4>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="Phone" class="form-label">Celular</label>
+            <input asp-for="Phone" class="form-control" id="Phone" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="NisPis" class="form-label">NIS/PIS</label>
+            <input asp-for="NisPis" class="form-control">
+            <span asp-validation-for="NisPis" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h4 class="mt-4">Alocação</h4>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="City" class="form-label">Cidade</label>
+            <input asp-for="City" class="form-control">
+        </div>
+        <div class="col-md-4">
+            <label asp-for="State" class="form-label">Estado</label>
+            <input asp-for="State" class="form-control">
+        </div>
+    </div>
+
+    <h4 class="mt-4">Dados contratuais</h4>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="Departamento" class="form-label"></label>
+            <input asp-for="Departamento" class="form-control">
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Cargo" class="form-label"></label>
+            <input asp-for="Cargo" class="form-control">
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Matricula" class="form-label">Código de matrícula</label>
+            <input asp-for="Matricula" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label asp-for="HourlyRate" class="form-label">Valor hora</label>
+            <input asp-for="HourlyRate" type="number" step="0.01" min="0" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label asp-for="AdmissionDate" class="form-label">Data de admissão</label>
+            <input asp-for="AdmissionDate" type="date" class="form-control">
+        </div>
+    </div>
+
+    <h4 class="mt-4">Cálculo de ponto</h4>
+    <div class="row g-3">
+        <div class="col-md-3 form-check mt-4">
+            <input asp-for="HasTimeBank" class="form-check-input" />
+            <label asp-for="HasTimeBank" class="form-check-label">Banco de horas habilitado</label>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="TrackingStart" class="form-label">Início registro</label>
+            <input asp-for="TrackingStart" type="date" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label asp-for="TrackingEnd" class="form-label">Fim registro</label>
+            <input asp-for="TrackingEnd" type="date" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label asp-for="VacationAccrualStart" class="form-label">Início período aquisitivo</label>
+            <input asp-for="VacationAccrualStart" type="date" class="form-control">
+        </div>
+    </div>
+
+    <h4 class="mt-4">Gestão</h4>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="ManagerName" class="form-label">Gestor</label>
+            <input asp-for="ManagerName" class="form-control">
+        </div>
+        <div class="col-md-4">
+            <label asp-for="EmployerName" class="form-label">Empregador</label>
+            <input asp-for="EmployerName" class="form-control">
+        </div>
+        <div class="col-md-4">
+            <label asp-for="UnitName" class="form-label">Unidade</label>
+            <input asp-for="UnitName" class="form-control">
         </div>
     </div>
 
@@ -97,7 +183,6 @@
 </form>
 @section Scripts {
     <script>
-        // CPF mask
         document.addEventListener('input', function (e) {
           if (!e.target.classList.contains('cpf-mask')) return;
           let v = e.target.value.replace(/\D/g, '').slice(0, 11);
@@ -131,7 +216,6 @@
 
         if (jornadaSel) {
           jornadaSel.addEventListener('change', onJornadaChange);
-          // só sugere caso a view venha vazia
           if (!start.value && !end.value) onJornadaChange();
         }
     </script>

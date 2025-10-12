@@ -1,22 +1,23 @@
-﻿using ClosedXML.Excel;
+﻿using System.Security.Claims;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
+using PontoApp.Application.Contracts;
 using PontoApp.Application.DTOs;
 using PontoApp.Application.Services;
 using PontoApp.Domain.Interfaces;
-using PontoApp.Infrastructure.Repositories;
 using PontoApp.Web.ViewModels;
 
 namespace PontoApp.Web.Controllers;
 
 [Authorize(Policy = "RequireAdmin")]
-public class ReportController(IReportService report, IEmployeeRepository empRepo, IPunchRepository punchRepo) : Controller
+public class ReportController(IReportService report, IEmployeeRepository empRepo, IPunchRepository punchRepo, IReportQueries reports) : Controller
 {
     private readonly IReportService _report = report;
     private readonly IEmployeeRepository _empRepo = empRepo;
     private readonly IPunchRepository _punchRepo = punchRepo;
+    private readonly IReportQueries _reports = reports;
 
     [HttpGet]
     public IActionResult Periodo()
@@ -49,7 +50,7 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
         if (inicio > fim)
         {
             ModelState.AddModelError(string.Empty, "A data inicial não pode ser maior que a final.");
-            return await RecarregarPeriodoComErro(inicio, fim);
+            return RecarregarPeriodoComErro(inicio, fim);
         }
 
         var resumo = await _report.ResumoAsync(inicio, fim, employeeId);
@@ -106,7 +107,7 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
             $"relatorio_{inicio:yyyyMMdd}_{fim:yyyyMMdd}.xlsx");
     }
 
-    private async Task<ViewResult> RecarregarPeriodoComErro(DateOnly inicio, DateOnly fim)
+    private ViewResult RecarregarPeriodoComErro(DateOnly inicio, DateOnly fim)
     {
         var itens = new List<SelectListItem> { new() { Value = "", Text = "Todos" } };
         itens.AddRange(
@@ -128,35 +129,38 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
     }
 
     [HttpGet]
-    public async Task<IActionResult> Espelho(int id, DateOnly? de, DateOnly? ate, CancellationToken ct)
+    public async Task<IActionResult> Espelho(int? employeeId, DateOnly? inicio, DateOnly? fim, CancellationToken ct)
     {
-        var start = de ?? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-        var end = ate ?? start.AddMonths(1).AddDays(-1);
+        inicio ??= new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        fim ??= DateOnly.FromDateTime(DateTime.Today);
 
-        var fromDt = start.ToDateTime(TimeOnly.MinValue);
-        var toDt = end.ToDateTime(TimeOnly.MaxValue);
+        var isAdmin = User.IsInRole("Admin") ||
+                      string.Equals(User.FindFirstValue(ClaimTypes.Role), "Admin", StringComparison.OrdinalIgnoreCase);
 
-        var punches = await _punchRepo.Query()
-            .Where(p => p.EmployeeId == id
-                     && p.DataHora.LocalDateTime >= fromDt
-                     && p.DataHora.LocalDateTime <= toDt)
-            .OrderBy(p => p.DataHora)
-            .ToListAsync(ct);
+        if (!isAdmin)
+        {
+            var empClaim = User.FindFirstValue("employee_id") ?? User.FindFirstValue("EmployeeId");
+            if (int.TryParse(empClaim, out var eid))
+                employeeId = eid;
+        }
 
-        var dias = punches
-            .GroupBy(p => DateOnly.FromDateTime(p.DataHora.LocalDateTime))
-            .OrderBy(g => g.Key)
-            .Select(g => new EspelhoDiaViewModel
+        var dto = await _reports.GetEspelhoAsync(inicio.Value, fim.Value, employeeId, ct);
+
+        var vm = dto.Select(d => new EspelhoDiaViewModel
+        {
+            Dia = d.Dia,
+            Marcas = d.Marcas.Select(m => new EspelhoMarcacaoViewModel
             {
-                Dia = g.Key,
-                Marcas = g.Select(m => new MarcaVm
-                {
-                    Tipo = m.Tipo,
-                    Hora = m.DataHora.LocalDateTime
-                }).ToList()
-            })
-            .ToList();
+                Tipo = m.Tipo,
+                Hora = m.Hora
+            }).ToList()
+        }).ToList();
 
-        return View(dias);
+        return View("Espelho", vm);
     }
+
+    [HttpGet]
+    public Task<IActionResult> Timesheet(int? employeeId, DateOnly? inicio, DateOnly? fim, CancellationToken ct)
+        => Espelho(employeeId, inicio, fim, ct);
+
 }

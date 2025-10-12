@@ -37,6 +37,7 @@ builder.Services.AddScoped<ITimeBankService, TimeBankService>();
 builder.Services.AddScoped<ILeaveService, LeaveService>();
 builder.Services.AddScoped<IScheduleService, ScheduleService>();
 builder.Services.AddScoped<IOnCallService, OnCallService>();
+builder.Services.AddScoped<IReportQueries, ReportQueries>();
 
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(AppContext.BaseDirectory, "keys")))

@@ -3,11 +3,11 @@
 public class EspelhoDiaViewModel
 {
     public DateOnly Dia { get; set; }
-    public List<MarcaVm> Marcas { get; set; } = new();
+    public List<EspelhoMarcacaoViewModel> Marcas { get; set; } = new();
 }
 
-public class MarcaVm
+public class EspelhoMarcacaoViewModel
 {
     public PunchType Tipo { get; set; }
-    public DateTime Hora { get; set; } // usamos DateTime na View
+    public DateTime Hora { get; set; }
 }

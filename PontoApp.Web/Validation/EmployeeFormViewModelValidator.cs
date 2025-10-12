@@ -49,7 +49,6 @@ namespace PontoApp.Web.Validation
 
             RuleFor(x => x.Jornada).IsInEnum();
 
-            // Jornadas com horário obrigatório (integral, parcial, remota, noturna, 12x36)
             When(x => x.Jornada is WorkScheduleKind.Integral
                                 or WorkScheduleKind.Parcial
                                 or WorkScheduleKind.Remota
@@ -60,28 +59,39 @@ namespace PontoApp.Web.Validation
                                     RuleFor(x => x.ShiftEnd).NotEmpty().WithMessage("Informe o fim do turno.");
 
                                     RuleFor(x => new { x.ShiftStart, x.ShiftEnd, x.Jornada })
-                                    .Must(s =>
+                            .Must(s =>
                     {
                         if (!TryParseTime(s.ShiftStart, out var start)) return false;
                         if (!TryParseTime(s.ShiftEnd, out var end)) return false;
 
-                        var dur = DurationHours(start, end); // considera virada de dia
+                        var dur = DurationHours(start, end);             
+                        var lunch = GetLunchHours(s.Jornada);            
+                        var worked = Math.Max(0.0, dur - lunch);       
+
                         var (dailyMax, _) = WorkScheduleRules.Caps(s.Jornada);
-                        return dur <= dailyMax + 0.01; // tolerância
+                        return worked <= dailyMax + 0.01;                
                     })
-                                    .WithMessage("A duração do turno excede o limite diário para essa jornada.");
+                            .WithMessage(x =>
+                    {
+                        TryParseTime(x.ShiftStart, out var start);
+                        TryParseTime(x.ShiftEnd, out var end);
+                        var dur = DurationHours(start, end);
+                        var lunch = GetLunchHours(x.Jornada);
+                        var worked = Math.Max(0.0, dur - lunch);
+                        var (dailyMax, _) = WorkScheduleRules.Caps(x.Jornada);
+
+                        return $"A duração líquida do turno ({worked:0.##}h, já descontando {lunch:0.##}h de almoço) " +
+                               $"excede o limite diário da jornada ({dailyMax:0.##}h).";
+                    });
                                 });
 
-            // Intermitente: horários opcionais
             When(x => x.Jornada == WorkScheduleKind.Intermitente, () => { /* sem exigência */ });
 
-            // Estagiário: se informar, não pode passar de 6h
             When(x => x.Jornada == WorkScheduleKind.Estagiario, () =>
             {
                 RuleFor(x => new { x.ShiftStart, x.ShiftEnd })
                     .Must(s =>
                     {
-                        // se não informou os dois, ok
                         if (string.IsNullOrWhiteSpace(s.ShiftStart) ||
                             string.IsNullOrWhiteSpace(s.ShiftEnd)) return true;
 
@@ -92,20 +102,32 @@ namespace PontoApp.Web.Validation
                     })
                     .WithMessage("Estagiário não pode ultrapassar 6h diárias.");
             });
+
+            RuleFor(x => x.HourlyRate).GreaterThanOrEqualTo(0).When(x => x.HourlyRate.HasValue);
+
+            RuleFor(x => x.AdmissionDate).LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today))
+                .When(x => x.AdmissionDate.HasValue)
+                .WithMessage("A data de admissão não pode ser no futuro.");
+
+            RuleFor(x => x.TrackingStart).LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today));
+
+            RuleFor(x => x.TrackingEnd).GreaterThanOrEqualTo(x => x.TrackingStart)
+                .When(x => x.TrackingStart.HasValue && x.TrackingEnd.HasValue)
+                .WithMessage("A data final do acompanhamento deve ser maior ou igual à inicial.");
+
+            RuleFor(x => x.VacationAccrualStart).LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today));
+
         }
 
-        // Tenta parsear "HH:mm" (e aceita "HH:mm:ss" se vier)
         private static bool TryParseTime(string? value, out TimeSpan time)
         {
             time = default;
             if (string.IsNullOrWhiteSpace(value)) return false;
 
-            // Alguns navegadores enviam "HH:mm", outros podem enviar "HH:mm:ss"
             return TimeSpan.TryParseExact(value, new[] { "hh\\:mm", "hh\\:mm\\:ss", "HH\\:mm", "HH\\:mm\\:ss" },
                                           CultureInfo.InvariantCulture, out time);
         }
 
-        // Calcula duração em horas, considerando virada de dia
         private static double DurationHours(TimeSpan start, TimeSpan end)
         {
             var dur = end >= start ? end - start : (TimeSpan.FromHours(24) - start) + end;
@@ -117,6 +139,19 @@ namespace PontoApp.Web.Validation
             if (!TimeOnly.TryParse(start, out var s)) return true;
             if (!TimeOnly.TryParse(end, out var e)) return true;
             return e > s;
+        }
+
+        private static double GetLunchHours(WorkScheduleKind kind)
+        {
+            return kind switch
+            {
+                WorkScheduleKind.Integral => 1.0, 
+                WorkScheduleKind.Parcial => 0.5, 
+                WorkScheduleKind.Noturna => 1.0,
+                WorkScheduleKind.Remota => 1.0,
+                WorkScheduleKind.DozePorTrintaSeis => 1.0, 
+                _ => 0.0
+            };
         }
     }
 }

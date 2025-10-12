@@ -8,7 +8,6 @@
 
     string Escala()
     {
-        // Ex.: "{EXEMPLO} Seg.-Sex. 08:00 - 17:00 Sem banco de horas"
         var j = Model.Jornada switch
         {
             WorkScheduleKind.Integral => "{INTEGRAL}",
@@ -22,7 +21,7 @@
         };
 
         var hh = (Model.ShiftStart.HasValue && Model.ShiftEnd.HasValue)
-                  ? $"{Model.ShiftStart:hh\\:mm} - {Model.ShiftEnd:hh\\:mm}"
+                  ? $"{Model.ShiftStart:HH\\:mm} - {Model.ShiftEnd:HH\\:mm}"
                   : "-";
 
         var banco = Model.BancoHorasHabilitado ? "Com banco de horas" : "Sem banco de horas";

@@ -1,20 +1,26 @@
 ﻿@using PontoApp.Domain.Enums
 @using PontoApp.Web.Utils
 @model PontoApp.Web.ViewModels.EmployeeFormViewModel
+
 @{
-    ViewData["Title"] = "Nov(a) Colaborador(a)";
+    ViewData["Title"] = "Novo(a) Colaborador(a)";
 }
+
 <h2>Nov(a) Colaborador(a)</h2>
 
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
 <form asp-action="Create" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
     <div class="mb-3">
         <label asp-for="Nome" class="form-label"></label>
         <input asp-for="Nome" class="form-control" />
         <span asp-validation-for="Nome" class="text-danger"></span>
     </div>
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
+    <div class="row g-3">
+        <div class="col-md-4">
             <label asp-for="Jornada" class="form-label">Tipo de jornada</label>
             <select asp-for="Jornada" class="form-select">
                 <option value="@WorkScheduleKind.Integral">Jornada integral (8h/44h)</option>
@@ -27,12 +33,14 @@
             </select>
             <span asp-validation-for="Jornada" class="text-danger"></span>
         </div>
-        <div class="col-md-4 mb-3">
+
+        <div class="col-md-4">
             <label asp-for="Pin" class="form-label"></label>
             <input asp-for="Pin" class="form-control" />
             <span asp-validation-for="Pin" class="text-danger"></span>
         </div>
-        <div class="col-md-4 mb-3">
+
+        <div class="col-md-4">
             <label asp-for="Cpf" class="form-label">CPF</label>
             <input asp-for="Cpf"
                    class="form-control cpf-mask"
@@ -42,58 +50,163 @@
                    value="@(Model?.Cpf.ToCpfMasked())" />
             <span asp-validation-for="Cpf" class="text-danger"></span>
         </div>
-        <div class="col-md-4 mb-3">
+
+        <div class="col-md-4">
             <label asp-for="BirthDate" class="form-label">Data de Nascimento</label>
             <input asp-for="BirthDate" class="form-control" type="date"
                    max="@DateTime.Today.ToString("yyyy-MM-dd")"
                    min="@DateTime.Today.AddYears(-110).ToString("yyyy-MM-dd")" />
             <span asp-validation-for="BirthDate" class="text-danger"></span>
         </div>
+
+        <div class="col-md-8">
+            <label asp-for="Email" class="form-label">E-mail</label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label asp-for="Email" class="form-label">E-mail</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="form-check mb-3">
+    <div class="form-check my-3">
         <input asp-for="Ativo" class="form-check-input" />
         <label asp-for="Ativo" class="form-check-label"></label>
     </div>
 
-    <div class="mb-3">
+    <div class="mb-4">
         <label class="form-label">Foto (opcional)</label>
         <input asp-for="Foto" type="file" accept="image/*" class="form-control" />
         <span asp-validation-for="Foto" class="text-danger"></span>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
+    <h5 class="mt-2">Horários</h5>
+    <div class="row g-3">
+        <div class="col-md-6">
             <label asp-for="ShiftStart" class="form-label"></label>
             <input asp-for="ShiftStart" type="time" class="form-control" />
             <span asp-validation-for="ShiftStart" class="text-danger"></span>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-6">
             <label asp-for="ShiftEnd" class="form-label"></label>
             <input asp-for="ShiftEnd" type="time" class="form-control" />
             <span asp-validation-for="ShiftEnd" class="text-danger"></span>
         </div>
     </div>
 
-    <button class="btn btn-primary" type="submit">Salvar</button>
-    <a asp-action="Index" class="btn btn-light">Cancelar</a>
+    <h5 class="mt-4">Contato</h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="Phone" class="form-label">Telefone</label>
+            <input asp-for="Phone" class="form-control" />
+            <span asp-validation-for="Phone" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="NisPis" class="form-label">NIS/PIS</label>
+            <input asp-for="NisPis" class="form-control" />
+            <span asp-validation-for="NisPis" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Alocação</h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="City" class="form-label">Cidade</label>
+            <input asp-for="City" class="form-control" />
+            <span asp-validation-for="City" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="State" class="form-label">Estado</label>
+            <input asp-for="State" class="form-control" />
+            <span asp-validation-for="State" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Dados contratuais</h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="Departamento" class="form-label"></label>
+            <input asp-for="Departamento" class="form-control" />
+            <span asp-validation-for="Departamento" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Cargo" class="form-label"></label>
+            <input asp-for="Cargo" class="form-control" />
+            <span asp-validation-for="Cargo" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="Matricula" class="form-label">Código de matrícula</label>
+            <input asp-for="Matricula" class="form-control" />
+            <span asp-validation-for="Matricula" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="AdmissionDate" class="form-label">Data de admissão</label>
+            <input asp-for="AdmissionDate" type="date" class="form-control" />
+            <span asp-validation-for="AdmissionDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="HourlyRate" class="form-label">Valor hora</label>
+            <input asp-for="HourlyRate" type="number" step="0.01" min="0" class="form-control" />
+            <span asp-validation-for="HourlyRate" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Cálculo de ponto</h5>
+    <div class="row g-3">
+        <div class="col-md-3 d-flex align-items-center">
+            <div class="form-check mt-2">
+                <input asp-for="HasTimeBank" class="form-check-input" />
+                <label asp-for="HasTimeBank" class="form-check-label">Banco de horas habilitado</label>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="TrackingStart" class="form-label">Início registro</label>
+            <input asp-for="TrackingStart" type="date" class="form-control" />
+            <span asp-validation-for="TrackingStart" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="TrackingEnd" class="form-label">Fim registro</label>
+            <input asp-for="TrackingEnd" type="date" class="form-control" />
+            <span asp-validation-for="TrackingEnd" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="VacationAccrualStart" class="form-label">Início período aquisitivo</label>
+            <input asp-for="VacationAccrualStart" type="date" class="form-control" />
+            <span asp-validation-for="VacationAccrualStart" class="text-danger"></span>
+        </div>
+    </div>
+
+    <h5 class="mt-4">Gestão</h5>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label asp-for="ManagerName" class="form-label">Gestor</label>
+            <input asp-for="ManagerName" class="form-control" />
+            <span asp-validation-for="ManagerName" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="EmployerName" class="form-label">Empregador</label>
+            <input asp-for="EmployerName" class="form-control" />
+            <span asp-validation-for="EmployerName" class="text-danger"></span>
+        </div>
+        <div class="col-md-4">
+            <label asp-for="UnitName" class="form-label">Unidade</label>
+            <input asp-for="UnitName" class="form-control" />
+            <span asp-validation-for="UnitName" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button class="btn btn-primary" type="submit">Salvar</button>
+        <a asp-action="Index" class="btn btn-light">Cancelar</a>
+    </div>
 </form>
+
 @section Scripts {
     <script>
-        // CPF mask
         document.addEventListener('input', function (e) {
-          if (!e.target.classList.contains('cpf-mask')) return;
-          let v = e.target.value.replace(/\D/g, '').slice(0, 11);
-          v = v.replace(/(\d{3})(\d)/, '$1.$2')
-               .replace(/(\d{3})(\d)/, '$1.$2')
-               .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-          e.target.value = v;
+            if (!e.target.classList.contains('cpf-mask')) return;
+            let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+            v = v.replace(/(\d{3})(\d)/, '$1.$2')
+                 .replace(/(\d{3})(\d)/, '$1.$2')
+                 .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            e.target.value = v;
         });
 
         const jornadaSel = document.querySelector('[name="Jornada"]');
@@ -101,27 +214,36 @@
         const end   = document.querySelector('[name="ShiftEnd"]');
 
         function setTime(s, e) {
-          if (start && !start.value) start.value = s;
-          if (end && !end.value) end.value = e;
+            if (start && !start.value) start.value = s;
+            if (end && !end.value) end.value = e;
+        }
+
+        function toggleShiftInputs(disabled) {
+            if (start) start.disabled = disabled;
+            if (end)   end.disabled   = disabled;
         }
 
         function onJornadaChange() {
-          const v = parseInt(jornadaSel.value, 10);
-          switch (v) {
-            case 0: /* Integral */            setTime('08:00', '17:00'); break;
-            case 1: /* Parcial */             setTime('08:00', '14:00'); break;
-            case 2: /* 12x36 */               setTime('07:00', '19:00'); break;
-            case 3: /* Noturna */             setTime('22:00', '05:00'); break;
-            case 4: /* Remota */              setTime('08:00', '17:00'); break;
-            case 5: /* Intermitente */        /* horários definidos por convocação */ break;
-            case 6: /* Estagiário */          setTime('09:00', '15:00'); break;
-          }
+            const v = parseInt(jornadaSel.value, 10);
+            toggleShiftInputs(false);
+
+            switch (v) {
+                case @((int)WorkScheduleKind.Integral):       setTime('08:00', '17:00'); break;
+                case @((int)WorkScheduleKind.Parcial):        setTime('08:00', '14:00'); break;
+                case @((int)WorkScheduleKind.DozePorTrintaSeis): setTime('07:00', '19:00'); break;
+                case @((int)WorkScheduleKind.Noturna):        setTime('22:00', '05:00'); break;
+                case @((int)WorkScheduleKind.Remota):         setTime('08:00', '17:00'); break;
+                case @((int)WorkScheduleKind.Intermitente):
+                    start.value = ''; end.value = '';
+                    toggleShiftInputs(true);
+                    break;
+                case @((int)WorkScheduleKind.Estagiario):     setTime('09:00', '15:00'); break;
+            }
         }
 
         if (jornadaSel) {
-          jornadaSel.addEventListener('change', onJornadaChange);
-          // só sugere caso a view venha vazia
-          if (!start.value && !end.value) onJornadaChange();
+            jornadaSel.addEventListener('change', onJornadaChange);
+            if (!start.value && !end.value) onJornadaChange();
         }
     </script>
 }

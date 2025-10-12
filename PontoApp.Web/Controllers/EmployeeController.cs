@@ -2,30 +2,24 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Domain.Entities;
+using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
-using PontoApp.Web.ViewModels;
 using PontoApp.Infrastructure.EF;
+using PontoApp.Web.Utils;
+using PontoApp.Web.ViewModels;
 
 namespace PontoApp.Web.Controllers;
 
 [Authorize(Policy = "RequireAdmin")]
-public class EmployeeController : Controller
+public class EmployeeController(IEmployeeRepository repo, IPunchRepository punchRepo, IWebHostEnvironment env, AppDbContext db) : Controller
 {
-    private readonly AppDbContext _db;
-    private readonly IEmployeeRepository _repo;
-    private readonly IPunchRepository _punchRepo;
-    private readonly IWebHostEnvironment _env;
+    private readonly AppDbContext _db = db;
+    private readonly IEmployeeRepository _repo = repo;
+    private readonly IPunchRepository _punchRepo = punchRepo;
+    private readonly IWebHostEnvironment _env = env;
     private const long MaxPhotoBytes = 2 * 1024 * 1024;
     private static readonly HashSet<string> PhotoExtWhitelist = new(StringComparer.OrdinalIgnoreCase)
         { ".jpg", ".jpeg", ".png", ".webp" };
-
-    public EmployeeController(IEmployeeRepository repo, IPunchRepository punchRepo, IWebHostEnvironment env, AppDbContext db)
-    {
-        _repo = repo;
-        _punchRepo = punchRepo;
-        _env = env;
-        _db = db;
-    }
 
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
@@ -43,17 +37,25 @@ public class EmployeeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EmployeeFormViewModel vm, CancellationToken ct)
     {
+        if (vm is null) return BadRequest();
         if (!ModelState.IsValid) return View(vm);
 
-        vm.Nome = vm.Nome?.Trim() ?? "";
-        vm.Pin = vm.Pin?.Trim() ?? "";
-        vm.Cpf = vm.Cpf?.Trim() ?? "";
-        vm.Email = vm.Email?.Trim() ?? "";
+        vm.Nome = (vm.Nome ?? string.Empty).Trim();
+        vm.Pin = (vm.Pin ?? string.Empty).Trim();
+        vm.Email = (vm.Email ?? string.Empty).Trim();
+        vm.Cpf = CpfUtils.OnlyDigits(vm.Cpf ?? string.Empty);
+
+        if (vm.Jornada == WorkScheduleKind.Intermitente)
+        {
+            vm.ShiftStart = null;
+            vm.ShiftEnd = null;
+        }
 
         var deleted = await _repo.QueryAll()
-                                 .FirstOrDefaultAsync(e =>
-                                      e.IsDeleted &&
-                                      (e.Pin == vm.Pin || e.Pin.EndsWith(":" + vm.Pin)), ct);
+            .FirstOrDefaultAsync(e =>
+                e.IsDeleted &&
+                (e.Pin == vm.Pin || e.Cpf == vm.Cpf || e.Pin.EndsWith(":" + vm.Pin)), ct);
+
         if (deleted is not null)
         {
             deleted.IsDeleted = false;
@@ -64,8 +66,25 @@ public class EmployeeController : Controller
             deleted.Cpf = vm.Cpf;
             deleted.Email = vm.Email;
             deleted.BirthDate = vm.BirthDate;
+            deleted.Jornada = vm.Jornada;
             deleted.ShiftStart = ParseTimeOrNull(vm.ShiftStart);
             deleted.ShiftEnd = ParseTimeOrNull(vm.ShiftEnd);
+            deleted.Phone = vm.Phone?.Trim();
+            deleted.NisPis = vm.NisPis?.Trim();
+            deleted.City = vm.City?.Trim();
+            deleted.State = vm.State?.Trim();
+            deleted.Departamento = vm.Departamento?.Trim();
+            deleted.Cargo = vm.Cargo?.Trim();
+            deleted.Matricula = vm.Matricula?.Trim();
+            deleted.HourlyRate = vm.HourlyRate;
+            deleted.AdmissionDate = vm.AdmissionDate;
+            deleted.HasTimeBank = vm.HasTimeBank;
+            deleted.TrackingStart = vm.TrackingStart;
+            deleted.TrackingEnd = vm.TrackingEnd;
+            deleted.VacationAccrualStart = vm.VacationAccrualStart;
+            deleted.ManagerName = vm.ManagerName?.Trim();
+            deleted.EmployerName = vm.EmployerName?.Trim();
+            deleted.UnitName = vm.UnitName?.Trim();
 
             if (vm.Foto is { Length: > 0 })
             {
@@ -92,7 +111,7 @@ public class EmployeeController : Controller
             ModelState.AddModelError(nameof(vm.Pin), "Já existe um(a) colaborador(a) ativo(a) com esse PIN.");
             return View(vm);
         }
-        if (await _repo.Query().AnyAsync(e => e.Cpf == vm.Cpf, ct))
+        if (!string.IsNullOrEmpty(vm.Cpf) && await _repo.Query().AnyAsync(e => e.Cpf == vm.Cpf, ct))
         {
             ModelState.AddModelError(nameof(vm.Cpf), "Já existe um(a) colaborador(a) ativo(a) com este CPF.");
             return View(vm);
@@ -106,9 +125,25 @@ public class EmployeeController : Controller
             Email = vm.Email,
             BirthDate = vm.BirthDate,
             Ativo = vm.Ativo,
+            Jornada = vm.Jornada,
             ShiftStart = ParseTimeOrNull(vm.ShiftStart),
             ShiftEnd = ParseTimeOrNull(vm.ShiftEnd),
-            Jornada = vm.Jornada
+            Phone = vm.Phone?.Trim(),
+            NisPis = vm.NisPis?.Trim(),
+            City = vm.City?.Trim(),
+            State = vm.State?.Trim(),
+            Departamento = vm.Departamento?.Trim(),
+            Cargo = vm.Cargo?.Trim(),
+            Matricula = vm.Matricula?.Trim(),
+            HourlyRate = vm.HourlyRate,
+            AdmissionDate = vm.AdmissionDate,
+            HasTimeBank = vm.HasTimeBank,
+            TrackingStart = vm.TrackingStart,
+            TrackingEnd = vm.TrackingEnd,
+            VacationAccrualStart = vm.VacationAccrualStart,
+            ManagerName = vm.ManagerName?.Trim(),
+            EmployerName = vm.EmployerName?.Trim(),
+            UnitName = vm.UnitName?.Trim()
         };
 
         if (vm.Foto is { Length: > 0 })
@@ -147,7 +182,23 @@ public class EmployeeController : Controller
             FotoAtualPath = emp.PhotoPath,
             ShiftStart = emp.ShiftStart?.ToString("HH:mm"),
             ShiftEnd = emp.ShiftEnd?.ToString("HH:mm"),
-            Jornada = emp.Jornada
+            Jornada = emp.Jornada,
+            Phone = emp.Phone,
+            NisPis = emp.NisPis,
+            City = emp.City,
+            State = emp.State,
+            Departamento = emp.Departamento,
+            Cargo = emp.Cargo,
+            Matricula = emp.Matricula,
+            HourlyRate = emp.HourlyRate,
+            AdmissionDate = emp.AdmissionDate,
+            HasTimeBank = emp.HasTimeBank,
+            TrackingStart = emp.TrackingStart,
+            TrackingEnd = emp.TrackingEnd,
+            VacationAccrualStart = emp.VacationAccrualStart,
+            ManagerName = emp.ManagerName,
+            EmployerName = emp.EmployerName,
+            UnitName = emp.UnitName
         };
 
         return View(vm);
@@ -157,6 +208,22 @@ public class EmployeeController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(EmployeeFormViewModel vm, CancellationToken ct)
     {
+        //if (!ModelState.IsValid)
+        //{
+        //    var allErrors = ModelState
+        //        .Where(kv => kv.Value.Errors.Count > 0)
+        //        .Select(kv => new
+        //        {
+        //            Field = string.IsNullOrEmpty(kv.Key) ? "(model)" : kv.Key,
+        //            Errors = kv.Value.Errors.Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? e.Exception?.Message : e.ErrorMessage)
+        //        })
+        //        .ToList();
+
+        //    // logue/inspecione no debug
+        //    System.Diagnostics.Debug.WriteLine(
+        //        string.Join(Environment.NewLine, allErrors.Select(e => $"{e.Field}: {string.Join(" | ", e.Errors)}")));
+        //}
+
         if (!ModelState.IsValid) return View(vm);
 
         var emp = await _repo.GetByIdAsync(vm.Id!.Value, ct);
@@ -185,6 +252,22 @@ public class EmployeeController : Controller
         emp.ShiftStart = ParseTimeOrNull(vm.ShiftStart);
         emp.ShiftEnd = ParseTimeOrNull(vm.ShiftEnd);
         emp.Jornada = vm.Jornada;
+        emp.Phone = vm.Phone?.Trim();
+        emp.NisPis = vm.NisPis?.Trim();
+        emp.City = vm.City?.Trim();
+        emp.State = vm.State?.Trim();
+        emp.Departamento = vm.Departamento?.Trim();
+        emp.Cargo = vm.Cargo?.Trim();
+        emp.Matricula = vm.Matricula?.Trim();
+        emp.HourlyRate = vm.HourlyRate;
+        emp.AdmissionDate = vm.AdmissionDate;
+        emp.HasTimeBank = vm.HasTimeBank;
+        emp.TrackingStart = vm.TrackingStart;
+        emp.TrackingEnd = vm.TrackingEnd;
+        emp.VacationAccrualStart = vm.VacationAccrualStart;
+        emp.ManagerName = vm.ManagerName?.Trim();
+        emp.EmployerName = vm.EmployerName?.Trim();
+        emp.UnitName = vm.UnitName?.Trim();
 
         if (vm.Foto is { Length: > 0 })
         {
@@ -255,7 +338,7 @@ public class EmployeeController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> Details(int id, CancellationToken ct)
     {
         var e = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -269,22 +352,22 @@ public class EmployeeController : Controller
             Cpf = e.Cpf,
             BirthDate = e.BirthDate,
             Email = e.Email,
-            Phone = e.Phone,               // se não existir, remova esta linha
-            NisPis = e.NisPis,             // idem
-            Cidade = e.City,               // idem
-            Estado = e.State,              // idem
-            Departamento = e.Departamento, // idem
-            Cargo = e.Cargo,               // idem
-            Matricula = e.Matricula,       // idem
-            ValorHora = e.HourlyRate,      // idem
-            Admissao = e.AdmissionDate,    // idem
-            BancoHorasHabilitado = e.HasTimeBank, // bool? -> bool
-            InicioRegistro = e.TrackingStart,     // idem
-            FimRegistro = e.TrackingEnd,          // idem
-            InicioAquisitivoFerias = e.VacationAccrualStart, // idem
-            Gestor = e.ManagerName,       // idem
-            Empregador = e.EmployerName,  // idem
-            Unidade = e.UnitName,         // idem
+            Phone = e.Phone,
+            NisPis = e.NisPis,
+            Cidade = e.City,
+            Estado = e.State,
+            Departamento = e.Departamento,
+            Cargo = e.Cargo,
+            Matricula = e.Matricula,
+            ValorHora = e.HourlyRate,
+            Admissao = e.AdmissionDate,
+            BancoHorasHabilitado = e.HasTimeBank,
+            InicioRegistro = e.TrackingStart,
+            FimRegistro = e.TrackingEnd,
+            InicioAquisitivoFerias = e.VacationAccrualStart,
+            Gestor = e.ManagerName,
+            Empregador = e.EmployerName,
+            Unidade = e.UnitName,
             Jornada = e.Jornada,
             ShiftStart = e.ShiftStart,
             ShiftEnd = e.ShiftEnd,
