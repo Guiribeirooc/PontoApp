@@ -49,7 +49,7 @@ builder.Services.AddFluentValidationAutoValidation(o =>
 });
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterEmployeeViewModelValidator>();
-
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("pt-BR");
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

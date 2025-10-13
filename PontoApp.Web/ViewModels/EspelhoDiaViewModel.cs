@@ -9,5 +9,5 @@ public class EspelhoDiaViewModel
 public class EspelhoMarcacaoViewModel
 {
     public PunchType Tipo { get; set; }
-    public DateTime Hora { get; set; }
+    public TimeSpan Hora { get; set; }
 }

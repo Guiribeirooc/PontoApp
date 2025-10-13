@@ -5,10 +5,9 @@ using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Application.Services
 {
-    public class OnCallService : IOnCallService
+    public class OnCallService(AppDbContext db) : IOnCallService
     {
-        private readonly AppDbContext _db;
-        public OnCallService(AppDbContext db) => _db = db;
+        private readonly AppDbContext _db = db;
 
         public Task<List<OnCallPeriod>> ListAsync(int employeeId, DateTime from, DateTime to, CancellationToken ct)
             => _db.OnCallPeriods.Where(x => x.EmployeeId == employeeId && x.Start < to && x.End > from)

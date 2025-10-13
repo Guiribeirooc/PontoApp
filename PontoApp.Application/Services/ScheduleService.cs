@@ -5,10 +5,9 @@ using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Application.Services
 {
-    public class ScheduleService : IScheduleService
+    public class ScheduleService(AppDbContext db) : IScheduleService
     {
-        private readonly AppDbContext _db;
-        public ScheduleService(AppDbContext db) => _db = db;
+        private readonly AppDbContext _db = db;
 
         public Task<List<DayOff>> ListDayOffsAsync(int employeeId, DateOnly from, DateOnly to, CancellationToken ct)
             => _db.DayOffs.Where(x => x.EmployeeId == employeeId && x.Date >= from && x.Date <= to)

@@ -6,10 +6,9 @@ using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Application.Services
 {
-    public class LeaveService : ILeaveService
+    public class LeaveService(AppDbContext db) : ILeaveService
     {
-        private readonly AppDbContext _db;
-        public LeaveService(AppDbContext db) => _db = db;
+        private readonly AppDbContext _db = db;
 
         public async Task<List<Leave>> ListAsync(int? employeeId, DateOnly? from, DateOnly? to, LeaveType? type, CancellationToken ct)
         {

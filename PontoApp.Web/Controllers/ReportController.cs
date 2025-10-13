@@ -1,25 +1,33 @@
 ﻿using System.Security.Claims;
-using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
 using PontoApp.Application.DTOs;
 using PontoApp.Application.Services;
 using PontoApp.Domain.Interfaces;
+using PontoApp.Web.Pdf;
+using PontoApp.Web.Printing;
 using PontoApp.Web.ViewModels;
+using QuestPDF.Fluent;
 
 namespace PontoApp.Web.Controllers;
 
-[Authorize(Policy = "RequireAdmin")]
-public class ReportController(IReportService report, IEmployeeRepository empRepo, IPunchRepository punchRepo, IReportQueries reports) : Controller
+[Authorize]
+public class ReportController(
+    IReportService report,
+    IEmployeeRepository empRepo,
+    IPunchRepository punchRepo,
+    IReportQueries reports) : Controller
 {
     private readonly IReportService _report = report;
     private readonly IEmployeeRepository _empRepo = empRepo;
     private readonly IPunchRepository _punchRepo = punchRepo;
     private readonly IReportQueries _reports = reports;
 
-    [HttpGet]
+    [HttpGet, Authorize(Policy = "RequireAdmin")]
     public IActionResult Periodo()
     {
         var hoje = DateOnly.FromDateTime(DateTime.Today);
@@ -43,8 +51,7 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
         return View();
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Policy = "RequireAdmin")]
     public async Task<IActionResult> Periodo(DateOnly inicio, DateOnly fim, int? employeeId)
     {
         if (inicio > fim)
@@ -55,56 +62,6 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
 
         var resumo = await _report.ResumoAsync(inicio, fim, employeeId);
         return View("PeriodoResultado", resumo);
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Excel(DateOnly inicio, DateOnly fim, int? employeeId)
-    {
-        var resumo = await _report.ResumoAsync(inicio, fim, employeeId);
-
-        using var wb = new XLWorkbook();
-        var ws = wb.Worksheets.Add("Relatório");
-
-        ws.Cell(1, 1).SetValue("Dia");
-        ws.Cell(1, 2).SetValue("Colaborador");
-        ws.Cell(1, 3).SetValue("Entrada");
-        ws.Cell(1, 4).SetValue("Saída");
-        ws.Cell(1, 5).SetValue("Saída Almoço");
-        ws.Cell(1, 6).SetValue("Volta Almoço");
-        ws.Cell(1, 7).SetValue("Duração (min)");
-
-        int row = 2;
-
-        IEnumerable<WorkDayDto> dias = resumo.Dias ?? Enumerable.Empty<WorkDayDto>();
-
-        foreach (WorkDayDto d in dias.OrderBy(d => d.Dia).ThenBy(d => d.EmployeeId))
-        {
-            bool first = true;
-
-            foreach (WorkIntervalDto i in d.Intervalos.OrderBy(ii => ii.In))
-            {
-                ws.Cell(row, 1).SetValue(d.Dia.ToString("yyyy-MM-dd"));
-                ws.Cell(row, 2).SetValue(d.EmployeeNome);
-                ws.Cell(row, 3).SetValue(i.In.ToLocalTime().ToString("HH:mm"));
-                ws.Cell(row, 4).SetValue(i.Out?.ToLocalTime().ToString("HH:mm") ?? "");
-                ws.Cell(row, 5).SetValue(first && d.SaidaAlmoco != null ? d.SaidaAlmoco.Value.ToLocalTime().ToString("HH:mm") : "");
-                ws.Cell(row, 6).SetValue(first && d.VoltaAlmoco != null ? d.VoltaAlmoco.Value.ToLocalTime().ToString("HH:mm") : "");
-                ws.Cell(row, 7).SetValue(i.Out == null ? "" : ((int)i.Duration.TotalMinutes).ToString());
-
-                row++;
-                first = false;
-            }
-        }
-
-        ws.Columns().AdjustToContents();
-
-        using var ms = new MemoryStream();
-        wb.SaveAs(ms);
-        var content = ms.ToArray();
-
-        return File(content,
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"relatorio_{inicio:yyyyMMdd}_{fim:yyyyMMdd}.xlsx");
     }
 
     private ViewResult RecarregarPeriodoComErro(DateOnly inicio, DateOnly fim)
@@ -129,6 +86,67 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
     }
 
     [HttpGet]
+    public async Task<IActionResult> TimesheetPdf(DateOnly? inicio, DateOnly? fim, int? employeeId, CancellationToken ct)
+    {
+        inicio ??= new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
+        fim ??= DateOnly.FromDateTime(DateTime.Today);
+
+        var isAdmin = User.IsInRole("Admin") ||
+                      string.Equals(User.FindFirstValue(ClaimTypes.Role), "Admin", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdmin)
+        {
+            var empClaim = User.FindFirstValue("EmployeeId") ?? User.FindFirstValue("employee_id");
+            if (!int.TryParse(empClaim, out var ownId))
+                return Forbid();
+
+            employeeId = ownId;
+        }
+
+        var resumo = await _report.ResumoAsync(inicio.Value, fim.Value, employeeId);
+
+        var model = new TimesheetPdfModel
+        {
+            Inicio = inicio.Value,
+            Fim = fim.Value,
+            Funcionario = string.IsNullOrWhiteSpace(resumo.EmployeeNome) ? "Colaborador" : resumo.EmployeeNome,
+            Dias = (resumo.Dias ?? Enumerable.Empty<WorkDayDto>())
+                   .OrderBy(d => d.Dia)
+                   .Select(d =>
+                   {
+                       var entrada = d.Intervalos?.FirstOrDefault()?.In;
+                       var saida = d.Intervalos?.LastOrDefault()?.Out;
+
+                       var total = d.TotalDia != default ? d.TotalDia : (entrada.HasValue && saida.HasValue ? saida.Value - entrada.Value : (TimeSpan?)null);
+                       var extras = d.HorasExtras;
+                       var atraso = d.MinutosAtraso;
+
+                       return new TimesheetPdfDay
+                       {
+                           Data = d.Dia,
+                           Entrada = entrada,
+                           Saida = saida,
+                           SaidaAlmoco = d.SaidaAlmoco,
+                           VoltaAlmoco = d.VoltaAlmoco,
+                           Total = total,
+                           Extras = extras,
+                           Atraso = atraso
+                       };
+                   }).ToList(),
+            BancoDeHoras = resumo.BancoDeHoras,
+
+        };
+
+        var pdfBytes = Document.Create(container => new TimesheetDocument(model).Compose(container))
+                              .GeneratePdf();
+        var safeName = model.Funcionario.Replace(' ', '_');
+        var fileName = $"espelho_{safeName}_{model.Inicio:yyyyMMdd}_{model.Fim:yyyyMMdd}.pdf";
+
+        return File(pdfBytes, "application/pdf",
+            $"espelho_{model.Funcionario.Replace(' ', '_')}_{model.Inicio:yyyyMMdd}_{model.Fim:yyyyMMdd}.pdf");
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Espelho(int? employeeId, DateOnly? inicio, DateOnly? fim, CancellationToken ct)
     {
         inicio ??= new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -149,6 +167,146 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
         var vm = dto.Select(d => new EspelhoDiaViewModel
         {
             Dia = d.Dia,
+            Marcas = d.Marcas
+                .OrderBy(m => m.Hora)
+                .Select(m => new EspelhoMarcacaoViewModel
+                {
+                    Tipo = m.Tipo,
+                    Hora = m.Hora
+                }).ToList()
+        }).ToList();
+
+        return View("Espelho", vm);
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> Timesheet(CancellationToken ct)
+    {
+        var hoje = DateOnly.FromDateTime(DateTime.Today);
+        var ini = new DateOnly(hoje.Year, hoje.Month, 1);
+        var fim = hoje;
+
+        var isAdmin = User.IsInRole("Admin") ||
+                      string.Equals(User.FindFirstValue(ClaimTypes.Role), "Admin",
+                                    StringComparison.OrdinalIgnoreCase);
+
+        var vm = new TimesheetFiltroViewModel
+        {
+            Inicio = ini,
+            Fim = fim,
+            IsAdmin = isAdmin
+        };
+
+        if (isAdmin)
+        {
+            vm.Employees.Add(new SelectListItem { Value = "", Text = "Selecione..." });
+            vm.Employees.AddRange(
+                _empRepo.Query()
+                    .Where(e => e.Ativo && !e.IsDeleted)
+                    .OrderBy(e => e.Nome)
+                    .Select(e => new SelectListItem
+                    {
+                        Value = e.Id.ToString(),
+                        Text = $"{e.Pin} - {e.Nome}"
+                    })
+                    .ToList()
+            );
+        }
+        else
+        {
+            // Força o colaborador logado
+            var empClaim = User.FindFirstValue("EmployeeId") ?? User.FindFirstValue("employee_id");
+            if (int.TryParse(empClaim, out var eid))
+            {
+                vm.EmployeeId = eid;
+                var nome = await _empRepo.Query()
+                            .Where(e => e.Id == eid)
+                            .Select(e => e.Nome)
+                            .FirstOrDefaultAsync(ct);
+                vm.EmployeeName = nome ?? "Colaborador";
+                // opcional: mostra o nome no dropdown desabilitado
+                vm.Employees.Add(new SelectListItem { Value = eid.ToString(), Text = vm.EmployeeName!, Selected = true });
+            }
+            else
+            {
+                return Forbid();
+            }
+        }
+
+        return View("TimesheetFiltro", vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize]
+    public async Task<IActionResult> Timesheet(TimesheetFiltroViewModel vm, CancellationToken ct)
+    {
+        if (vm.Inicio > vm.Fim)
+        {
+            ModelState.AddModelError(string.Empty, "A data inicial não pode ser maior que a final.");
+            return await Timesheet(ct); // recarrega com dropdowns
+        }
+
+        var isAdmin = User.IsInRole("Admin") ||
+                      string.Equals(User.FindFirstValue(ClaimTypes.Role), "Admin",
+                                    StringComparison.OrdinalIgnoreCase);
+
+        vm.IsAdmin = isAdmin;
+
+        // Recarrega lista (para o caso de erro/volta)
+        if (isAdmin)
+        {
+            vm.Employees.Clear();
+            vm.Employees.Add(new SelectListItem { Value = "", Text = "Selecione..." });
+            vm.Employees.AddRange(
+                _empRepo.Query()
+                    .Where(e => e.Ativo && !e.IsDeleted)
+                    .OrderBy(e => e.Nome)
+                    .Select(e => new SelectListItem
+                    {
+                        Value = e.Id.ToString(),
+                        Text = $"{e.Pin} - {e.Nome}",
+                        Selected = vm.EmployeeId.HasValue && vm.EmployeeId.Value.ToString() == e.Id.ToString()
+                    })
+                    .ToList()
+            );
+        }
+        else
+        {
+            var empClaim = User.FindFirstValue("EmployeeId") ?? User.FindFirstValue("employee_id");
+            if (int.TryParse(empClaim, out var eid))
+            {
+                vm.EmployeeId = eid;
+                var nome = await _empRepo.Query()
+                            .Where(e => e.Id == eid)
+                            .Select(e => e.Nome)
+                            .FirstOrDefaultAsync(ct);
+                vm.EmployeeName = nome ?? "Colaborador";
+                vm.Employees.Clear();
+                vm.Employees.Add(new SelectListItem { Value = eid.ToString(), Text = vm.EmployeeName!, Selected = true });
+            }
+            else
+            {
+                return Forbid();
+            }
+        }
+
+        // Busca nome do colaborador para mostrar no resultado (ADMIN)
+        if (isAdmin && vm.EmployeeId.HasValue)
+        {
+            vm.EmployeeName = await _empRepo.Query()
+                .Where(e => e.Id == vm.EmployeeId.Value)
+                .Select(e => e.Nome)
+                .FirstOrDefaultAsync(ct) ?? "Colaborador";
+        }
+
+        // Carrega as marcações (reutiliza seu IReportQueries)
+        var dto = await _reports.GetEspelhoAsync(vm.Inicio, vm.Fim, vm.EmployeeId, ct);
+
+        vm.Dias = dto.Select(d => new EspelhoDiaViewModel
+        {
+            Dia = d.Dia,
             Marcas = d.Marcas.Select(m => new EspelhoMarcacaoViewModel
             {
                 Tipo = m.Tipo,
@@ -156,11 +314,6 @@ public class ReportController(IReportService report, IEmployeeRepository empRepo
             }).ToList()
         }).ToList();
 
-        return View("Espelho", vm);
+        return View("TimesheetFiltro", vm);
     }
-
-    [HttpGet]
-    public Task<IActionResult> Timesheet(int? employeeId, DateOnly? inicio, DateOnly? fim, CancellationToken ct)
-        => Espelho(employeeId, inicio, fim, ct);
-
 }

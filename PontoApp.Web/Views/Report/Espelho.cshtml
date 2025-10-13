@@ -7,21 +7,28 @@
 <table class="table table-striped">
     <thead>
         <tr>
-            <th>Dia</th>
+            <th style="width:140px">Dia</th>
             <th>Marcações</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var d in Model)
+        @foreach (var d in Model.OrderBy(x => x.Dia))
         {
             <tr>
                 <td>@d.Dia.ToString("dd/MM/yyyy")</td>
                 <td>
-                    @foreach (var m in d.Marcas)
+                    @if (d.Marcas == null || d.Marcas.Count == 0)
                     {
-                        <span class="badge bg-light text-dark me-1">
-                            @m.Tipo - @m.Hora.ToString("HH\\:mm")
-                        </span>
+                        <span class="text-muted">Sem marcações</span>
+                    }
+                    else
+                    {
+                        @foreach (var m in d.Marcas.OrderBy(m => m.Hora))
+                        {
+                            <span class="badge bg-light text-dark me-1">
+                                @m.Tipo - @m.Hora.ToString(@"hh\:mm")
+                            </span>
+                        }
                     }
                 </td>
             </tr>

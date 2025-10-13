@@ -58,7 +58,7 @@ namespace PontoApp.Web.Controllers
             var isAdmin = !string.IsNullOrWhiteSpace(_masterEmail) &&
                           string.Equals(user.Email, _masterEmail, StringComparison.OrdinalIgnoreCase);
 
-            var displayName = user.Employee.Nome;
+            var displayName = user.Email;
 
             if (!isAdmin && user.EmployeeId.HasValue)
             {
@@ -68,25 +68,35 @@ namespace PontoApp.Web.Controllers
                     .FirstOrDefaultAsync(ct);
 
                 if (!string.IsNullOrWhiteSpace(empName))
-                    displayName = empName;
+                    displayName = empName!;
             }
 
             var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new(ClaimTypes.Name, displayName),
-        new(ClaimTypes.Email, user.Email),
-        new(ClaimTypes.Role, isAdmin ? "Admin" : "Employee")
-    };
+            {
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, displayName),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.Role, isAdmin ? "Admin" : "Employee")
+            };
 
-            if (!isAdmin && user.EmployeeId.HasValue)
+            if (user.EmployeeId.HasValue)
                 claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
 
-            var id = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            if (user.EmployeeId.HasValue)
+            {
+                var active = await _emps.Query()
+                    .Where(e => e.Id == user.EmployeeId.Value)
+                    .Select(e => e.Ativo && !e.IsDeleted)
+                    .FirstOrDefaultAsync(ct);
+
+                claims.Add(new Claim("employee_active", active ? "true" : "false"));
+            }
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(id),
+                new ClaimsPrincipal(identity),
                 new AuthenticationProperties
                 {
                     IsPersistent = vm.RememberMe,

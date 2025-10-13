@@ -5,10 +5,9 @@ using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Application.Services
 {
-    public class TimeBankService : ITimeBankService
+    public class TimeBankService(AppDbContext db) : ITimeBankService
     {
-        private readonly AppDbContext _db;
-        public TimeBankService(AppDbContext db) => _db = db;
+        private readonly AppDbContext _db = db;
 
         public async Task AddAdjustmentAsync(int employeeId, int minutes, string reason, CancellationToken ct)
         {

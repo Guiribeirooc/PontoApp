@@ -1,0 +1,80 @@
+﻿@model PontoApp.Web.ViewModels.TimesheetFiltroViewModel
+@{
+    ViewData["Title"] = "Espelho de ponto";
+}
+
+<h2 class="mb-3">Espelho de ponto</h2>
+
+<form asp-action="Timesheet" method="post" class="row g-3 mb-4">
+    @Html.AntiForgeryToken()
+
+    <div class="col-md-4">
+        <label class="form-label">Colaborador</label>
+        @if (Model.IsAdmin)
+        {
+            <select asp-for="EmployeeId" class="form-select" asp-items="Model.Employees"></select>
+        }
+        else
+        {
+            <select class="form-select" disabled>
+                <option>@(Model.EmployeeName ?? "Colaborador")</option>
+            </select>
+            <input type="hidden" asp-for="EmployeeId" />
+        }
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Início</label>
+        <input asp-for="Inicio" class="form-control" type="date" />
+    </div>
+
+    <div class="col-md-3">
+        <label class="form-label">Fim</label>
+        <input asp-for="Fim" class="form-control" type="date" />
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Gerar</button>
+    </div>
+</form>
+
+@if (Model.Dias?.Any() == true)
+{
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="small text-muted">
+            <div><strong>Colaborador:</strong> @(Model.EmployeeName ?? "Colaborador")</div>
+            <div><strong>Período:</strong> @Model.Inicio.ToString("dd/MM/yyyy") – @Model.Fim.ToString("dd/MM/yyyy")</div>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th style="width:160px">Dia</th>
+                <th>Marcações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Dias)
+            {
+                <tr>
+                    <td>@d.Dia.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        @foreach (var m in d.Marcas)
+                        {
+                            <span class="badge bg-light text-dark me-1">
+                                @m.Tipo - @m.Hora.ToString("hh\\:mm")
+                            </span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="alert alert-info">
+        Selecione o colaborador e o período e clique em <strong>Gerar</strong>.
+    </div>
+}
