@@ -45,10 +45,10 @@ public class EmployeeRepository : IEmployeeRepository
         if (e is null) return;
 
         e.IsDeleted = true;
-        e.DeletedAt = DateTimeOffset.UtcNow;
+        e.DeletedAt = DateTime.Now;
 
         if (!string.IsNullOrWhiteSpace(e.Pin))
-            e.Pin = $"{e.Pin}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            e.Pin = $"{e.Pin}:{DateTime.Now}";
 
         _db.Employees.Update(e);
     }

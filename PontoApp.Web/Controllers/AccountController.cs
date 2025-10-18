@@ -100,7 +100,7 @@ namespace PontoApp.Web.Controllers
                 new AuthenticationProperties
                 {
                     IsPersistent = vm.RememberMe,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14),
+                    ExpiresUtc = DateTime.Now.AddDays(14),
                     AllowRefresh = true
                 });
 
@@ -160,7 +160,7 @@ namespace PontoApp.Web.Controllers
 
                 if (user != null && !user.IsDeleted)
                 {
-                    var now = DateTimeOffset.UtcNow;
+                    var now = DateTime.Now;
 
                     var recentlySent = user.ResetCodeExpiresAt.HasValue &&
                                        user.ResetCodeExpiresAt.Value - now > TimeSpan.FromMinutes(14);
@@ -214,7 +214,7 @@ namespace PontoApp.Web.Controllers
             var email = vm.Email.Trim().ToLowerInvariant();
             var user = await _users.GetByEmailAsync(email, ct);
 
-            var now = DateTimeOffset.Now;
+            var now = DateTime.Now;
             var isInvalid =
                 user is null ||
                 user.IsDeleted ||

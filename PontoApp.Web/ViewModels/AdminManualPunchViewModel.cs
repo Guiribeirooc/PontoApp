@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using PontoApp.Domain.Entities;
 
 namespace PontoApp.Web.ViewModels
 {

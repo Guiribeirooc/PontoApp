@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using PontoApp.Domain.Entities;
 
 namespace PontoApp.Infrastructure.EF.Configurations;
 public class PunchConfig : IEntityTypeConfiguration<Punch>
@@ -9,8 +10,14 @@ public class PunchConfig : IEntityTypeConfiguration<Punch>
         b.ToTable("Punches");
         b.HasKey(p => p.Id);
 
-        b.Property(p => p.DataHora).IsRequired();
-        b.Property(p => p.Tipo).IsRequired();
+        b.Property(p => p.DataHora)
+         .HasColumnType("datetime2")
+         .IsRequired();
+
+        b.Property(p => p.Tipo)
+         .HasConversion<int>()
+         .IsRequired();
+
         b.Property(p => p.Ip).HasMaxLength(64);
         b.Property(p => p.Justificativa).HasMaxLength(200);
         b.Property(p => p.Origem).HasMaxLength(50);
@@ -19,5 +26,8 @@ public class PunchConfig : IEntityTypeConfiguration<Punch>
          .WithMany(e => e.Punches)
          .HasForeignKey(p => p.EmployeeId)
          .OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(p => p.DataHora);
+        b.HasIndex(p => new { p.EmployeeId, p.DataHora });
     }
 }

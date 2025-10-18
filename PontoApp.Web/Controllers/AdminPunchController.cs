@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Services;
+using PontoApp.Domain.Entities;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Web.ViewModels;
 
@@ -31,31 +32,17 @@ namespace PontoApp.Web.Controllers
             return items;
         }
 
-        private static TimeZoneInfo GetBrTz()
-        {
-            try
-            {
-                return OperatingSystem.IsWindows()
-                    ? TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time")
-                    : TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-            }
-            catch
-            {
-                return TimeZoneInfo.CreateCustomTimeZone("BR-Fallback", TimeSpan.FromHours(-3), "BR-Fallback", "BR-Fallback");
-            }
-        }
-
         [HttpGet]
         public async Task<IActionResult> Create(int? employeeId = null, CancellationToken ct = default)
         {
             if (employeeId.HasValue)
             {
                 var exists = await _empRepo.Query()
-                                           .AnyAsync(e => e.Id == employeeId.Value && e.Ativo && !e.IsDeleted, ct);
+                    .AnyAsync(e => e.Id == employeeId.Value && e.Ativo && !e.IsDeleted, ct);
                 if (!exists) return NotFound("Colaborador não encontrado ou inativo.");
             }
 
-            var nowLocal = DateTime.Now; 
+            var nowLocal = DateTime.Now; // local puro
             var vm = new AdminManualPunchViewModel
             {
                 EmployeeId = employeeId,
@@ -83,14 +70,15 @@ namespace PontoApp.Web.Controllers
             if (!Enum.IsDefined(typeof(PunchType), vm.Tipo))
                 ModelState.AddModelError(nameof(vm.Tipo), "Tipo de batida inválido.");
 
-            DateTime localDt; 
+            DateTime parsedLocal;
+
             if (string.IsNullOrWhiteSpace(vm.DataHoraLocal) ||
                 !DateTime.TryParseExact(
-                    vm.DataHoraLocal,                
-                    "yyyy-MM-dd'T'HH:mm",            
+                    vm.DataHoraLocal,
+                    "yyyy-MM-dd'T'HH:mm",
                     CultureInfo.InvariantCulture,
                     DateTimeStyles.None,
-                    out localDt))
+                    out parsedLocal))
             {
                 ModelState.AddModelError(nameof(vm.DataHoraLocal), "Data/hora inválida.");
                 vm.Employees = BuildEmployeeSelect(vm.EmployeeId);
@@ -103,23 +91,22 @@ namespace PontoApp.Web.Controllers
                 return View(vm);
             }
 
-            var tz = GetBrTz();
-            var unspecified = DateTime.SpecifyKind(localDt, DateTimeKind.Unspecified);
-            var dto = new DateTimeOffset(unspecified, tz.GetUtcOffset(unspecified));
+            var localDt = DateTime.SpecifyKind(parsedLocal, DateTimeKind.Unspecified);
 
             try
             {
                 await _punchService.MarcarManualAsync(
                     employeeId: vm.EmployeeId!.Value,
                     tipo: vm.Tipo,
-                    dataHora: dto,
+                    dataHora: localDt,
                     justificativa: vm.Justificativa!,
                     ct: ct);
 
                 TempData["ok"] = "Marcação manual registrada.";
 
-                var diaLocal = DateOnly.FromDateTime(dto.LocalDateTime.Date);
-                return RedirectToAction(nameof(List), new { employeeId = vm.EmployeeId!.Value, inicio = diaLocal, fim = diaLocal });
+                var diaLocal = DateOnly.FromDateTime(localDt.Date);
+                return RedirectToAction(nameof(List),
+                    new { employeeId = vm.EmployeeId!.Value, inicio = diaLocal, fim = diaLocal });
             }
             catch (InvalidOperationException ex)
             {
@@ -137,7 +124,6 @@ namespace PontoApp.Web.Controllers
             vm.Employees = BuildEmployeeSelect(vm.EmployeeId);
             return View(vm);
         }
-
 
         [HttpGet]
         public async Task<IActionResult> List(int employeeId, DateOnly? inicio = null, DateOnly? fim = null, CancellationToken ct = default)

@@ -31,7 +31,7 @@ public class PunchRepository : IPunchRepository
     public Task SaveChangesAsync(CancellationToken ct = default) =>
         _db.SaveChangesAsync(ct);
 
-    public Task<bool> ExistsAsync(int employeeId, PunchType tipo, DateTimeOffset dataHora, CancellationToken ct = default) =>
+    public Task<bool> ExistsAsync(int employeeId, PunchType tipo, DateTime dataHora, CancellationToken ct = default) =>
         _db.Punches
            .AsNoTracking()
            .AnyAsync(p =>
@@ -40,7 +40,7 @@ public class PunchRepository : IPunchRepository
                p.DataHora == dataHora, ct);
 
     public async Task<List<Punch>> ListByPeriodAsync(
-        DateTimeOffset start, DateTimeOffset end, int? employeeId, CancellationToken ct = default)
+        DateTime start, DateTime end, int? employeeId, CancellationToken ct = default)
     {
         var q = _db.Punches
                    .AsNoTracking()

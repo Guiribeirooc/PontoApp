@@ -8,8 +8,8 @@
         public List<WorkIntervalDto> Intervalos { get; set; } = new();
         public TimeSpan TotalDia { get; set; }
         public TimeSpan AjusteAlmoco { get; set; }
-        public DateTimeOffset? SaidaAlmoco { get; set; }
-        public DateTimeOffset? VoltaAlmoco { get; set; }
+        public DateTime? SaidaAlmoco { get; set; }
+        public DateTime? VoltaAlmoco { get; set; }
         public TimeSpan HorasExtras { get; set; }
         public TimeSpan MinutosAtraso { get; set; }
         public TimeSpan BancoDeHoras { get; set; }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Services;
+using PontoApp.Domain.Entities;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Web.ViewModels;
 

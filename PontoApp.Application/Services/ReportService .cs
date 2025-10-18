@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.DTOs;
+using PontoApp.Domain.Entities;
 using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
 
@@ -18,32 +19,22 @@ public interface IReportService
     Task<WorkSummaryDto> ResumoAsync(DateOnly inicio, DateOnly fim, int? employeeId = null, CancellationToken ct = default);
 }
 
-public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRepo, WorkRules rules) : IReportService
+public class ReportService : IReportService
 {
-    private readonly IPunchRepository _punchRepo = punchRepo;
-    private readonly IEmployeeRepository _empRepo = empRepo;
-    private readonly WorkRules _rules = rules;
+    private readonly IPunchRepository _punchRepo;
+    private readonly IEmployeeRepository _empRepo;
+    private readonly WorkRules _rules;
 
-    private static TimeZoneInfo GetBrTz()
+    public ReportService(IPunchRepository punchRepo, IEmployeeRepository empRepo, WorkRules rules)
     {
-        try
-        {
-            return OperatingSystem.IsWindows()
-                ? TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time")
-                : TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        }
-        catch
-        {
-            return TimeZoneInfo.CreateCustomTimeZone("BR-Fallback", TimeSpan.FromHours(-3), "BR-Fallback", "BR-Fallback");
-        }
+        _punchRepo = punchRepo;
+        _empRepo = empRepo;
+        _rules = rules;
     }
 
-    private static (DateTimeOffset ini, DateTimeOffset fim) DiaRange(DateOnly dia, TimeZoneInfo tz)
-    {
-        var localMidnight = DateTime.SpecifyKind(dia.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
-        var ini = new DateTimeOffset(localMidnight, tz.GetUtcOffset(localMidnight));
-        return (ini, ini.AddDays(1));
-    }
+    // Recorte de um dia no relógio local (SP): [00:00, 00:00 do dia seguinte)
+    private static (DateTime ini, DateTime fimExcl) DiaRange(DateOnly dia)
+        => (dia.ToDateTime(TimeOnly.MinValue), dia.AddDays(1).ToDateTime(TimeOnly.MinValue));
 
     private TimeSpan Round(TimeSpan t)
     {
@@ -55,10 +46,8 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
 
     private static TimeSpan Previsto(WorkScheduleKind jornada, bool workedToday)
     {
-        if (!workedToday)
-            return TimeSpan.Zero;
+        if (!workedToday) return TimeSpan.Zero;
 
-        // ajuste conforme sua regra
         return jornada switch
         {
             WorkScheduleKind.Integral => TimeSpan.FromHours(8),
@@ -68,28 +57,29 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
             WorkScheduleKind.Remota => TimeSpan.FromHours(8),
             WorkScheduleKind.Intermitente => TimeSpan.Zero,
             WorkScheduleKind.Estagiario => TimeSpan.FromHours(6),
-
             _ => TimeSpan.Zero
         };
     }
 
-    private (TimeSpan atraso, List<string> ocorr)
-        CalcAtraso(DateTimeOffset? entrada, DateTimeOffset? saida, TimeOnly? sStart, TimeOnly? sEnd)
+    // Atraso: entrada após início + tolerância; saída antes do fim conta como atraso também
+    private (TimeSpan atraso, List<string> ocorr) CalcAtraso(
+        DateTime? entrada, DateTime? saida, TimeOnly? sStart, TimeOnly? sEnd)
     {
         var ocorr = new List<string>();
         var atraso = TimeSpan.Zero;
 
+        // tolerância simples de 5 min para entrada
         if (sStart.HasValue && entrada.HasValue)
         {
-            var esperado = entrada.Value.Date + sStart.Value.ToTimeSpan();
-            var diff = entrada.Value - esperado;
-            if (diff > TimeSpan.FromMinutes(5)) atraso += diff; // tolerância simples
+            var esperadoIn = entrada.Value.Date + sStart.Value.ToTimeSpan();
+            var diff = entrada.Value - esperadoIn;
+            if (diff > TimeSpan.FromMinutes(5)) atraso += diff;
         }
 
         if (sEnd.HasValue && saida.HasValue)
         {
-            var esperado = saida.Value.Date + sEnd.Value.ToTimeSpan();
-            var diff = esperado - saida.Value; // saída antecipada
+            var esperadoOut = saida.Value.Date + sEnd.Value.ToTimeSpan();
+            var diff = esperadoOut - saida.Value; // saiu antes -> positivo = atraso
             if (diff > TimeSpan.Zero) atraso += diff;
         }
 
@@ -101,16 +91,14 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
     {
         if (fim < inicio) throw new InvalidOperationException("Período inválido.");
 
-        var tz = GetBrTz();
+        var (ini, _) = DiaRange(inicio);
+        var (_, fimExcl) = DiaRange(fim);
 
-        // [ini, fim+1) no fuso de SP
-        var (ini, _) = DiaRange(inicio, tz);
-        var (_, fimEx) = DiaRange(fim, tz);
-
+        // Busca já com colaborador (nome/jornada/turno)
         var rows = await (
             from p in _punchRepo.Query().AsNoTracking()
             join e in _empRepo.Query().AsNoTracking() on p.EmployeeId equals e.Id
-            where p.DataHora >= ini && p.DataHora < fimEx
+            where p.DataHora >= ini && p.DataHora < fimExcl
                   && (employeeId == null || p.EmployeeId == employeeId.Value)
                   && e.Ativo && !e.IsDeleted
             select new
@@ -134,20 +122,17 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
 
         foreach (var gEmp in rows.GroupBy(x => new { x.EmployeeId, x.Nome, x.Jornada, x.ShiftStart, x.ShiftEnd }))
         {
-            // Agrupa por dia já normalizado para SP
+            // Agrupa por dia local (sem fuso)
             var porDia = gEmp
-                .GroupBy(x =>
-                {
-                    var local = ToSp(x.DataHora, tz);
-                    return DateOnly.FromDateTime(local.Date);
-                })
+                .GroupBy(x => DateOnly.FromDateTime(x.DataHora.Date))
                 .OrderBy(g => g.Key);
 
             foreach (var gDia in porDia)
             {
                 var pares = new List<WorkIntervalDto>();
-                DateTimeOffset? aberto = null;
+                DateTime? aberto = null;
 
+                // Monta pares Entrada/Volta x Saída/SaídaAlmoço
                 foreach (var r in gDia.OrderBy(p => p.DataHora))
                 {
                     switch (r.Tipo)
@@ -182,25 +167,21 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
                 if (aberto is not null)
                     pares.Add(new WorkIntervalDto(aberto.Value, null, TimeSpan.Zero));
 
-                // ===== Janela de almoço no MESMO OFFSET do dia =====
-                var dayOffset = tz.GetUtcOffset(gDia.Key.ToDateTime(TimeOnly.MinValue));
-                var janelaIni = new DateTimeOffset(
-                    gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowStart)), dayOffset);
-                var janelaFim = new DateTimeOffset(
-                    gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowEnd)), dayOffset);
-
+                // Janela "válida" de almoço do dia corrente
+                var janelaIni = gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowStart));
+                var janelaFim = gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowEnd));
                 var almMin = TimeSpan.FromMinutes(_rules.MinLunchMinutes);
 
+                // Calcula maior intervalo (gap) dentro da janela de almoço
                 TimeSpan maiorGapAlmoco = TimeSpan.Zero;
-                DateTimeOffset? lastOut = null;
+                DateTime? lastOut = null;
 
                 foreach (var i in pares.Where(i => i.Out != null).OrderBy(i => i.In))
                 {
                     if (lastOut is not null)
                     {
-                        // Compare tudo no offset do dia
-                        var interStart = lastOut.Value.ToOffset(dayOffset);
-                        var interEnd = i.In.ToOffset(dayOffset);
+                        var interStart = lastOut.Value;
+                        var interEnd = i.In;
 
                         var ei = interStart > janelaIni ? interStart : janelaIni;
                         var ef = interEnd < janelaFim ? interEnd : janelaFim;
@@ -215,7 +196,7 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
                     ? (almMin - maiorGapAlmoco)
                     : TimeSpan.Zero;
 
-                // Total trabalhado
+                // Total trabalhado (somatório dos pares fechados) – aplica ajuste de almoço e teto diário
                 var trabalhado = new TimeSpan(pares.Where(i => i.Out != null).Sum(i => i.Duration.Ticks));
                 if (ajusteAlmoco > TimeSpan.Zero)
                 {
@@ -224,14 +205,14 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
                 }
 
                 var maxDia = TimeSpan.FromHours(_rules.MaxDailyHours);
-                if (maxDia > TimeSpan.Zero && trabalhado > maxDia) trabalhado = maxDia;
+                if (maxDia.TotalMinutes > 0 && trabalhado > maxDia) trabalhado = maxDia;
 
                 trabalhado = Round(trabalhado);
 
                 var entrada = pares.FirstOrDefault()?.In;
                 var saida = pares.LastOrDefault(i => i.Out != null)?.Out;
 
-                // Atraso do dia
+                // Atraso
                 var (atraso, ocorrAtraso) = CalcAtraso(entrada, saida, gEmp.Key.ShiftStart, gEmp.Key.ShiftEnd);
 
                 // Previsto x banco/extras
@@ -243,7 +224,8 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
                 if (ajusteAlmoco > TimeSpan.Zero)
                     ocorr.Add($"Almoço abaixo de {_rules.MinLunchMinutes} min (ajuste {Round(ajusteAlmoco):hh\\:mm}).");
                 ocorr.AddRange(ocorrAtraso);
-                if (entrada == null || saida == null) ocorr.Add("Marcações incompletas.");
+                if (entrada == null || saida == null)
+                    ocorr.Add("Marcações incompletas.");
 
                 totalPeriodo += trabalhado;
                 bancoDoPeriodo += bancoDia;
@@ -256,9 +238,9 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
                     Dia = gDia.Key,
                     EmployeeId = gEmp.Key.EmployeeId,
                     EmployeeNome = gEmp.Key.Nome,
-                    Intervalos = pares,
 
-                    TotalDia = trabalhado,
+                    Intervalos = pares,         // já contém Duration arredondada por par
+                    TotalDia = trabalhado,    // total do dia (após ajuste/round)
                     AjusteAlmoco = ajusteAlmoco,
                     SaidaAlmoco = saidaAlmocoEvt,
                     VoltaAlmoco = voltaAlmocoEvt,
@@ -284,11 +266,5 @@ public class ReportService(IPunchRepository punchRepo, IEmployeeRepository empRe
             totalPeriodo,
             bancoDoPeriodo
         );
-    }
-
-    private static DateTimeOffset ToSp(DateTimeOffset dto, TimeZoneInfo tz)
-    {
-        var off = tz.GetUtcOffset(dto.UtcDateTime);   // considera DST, se houver
-        return dto.ToOffset(off);
     }
 }

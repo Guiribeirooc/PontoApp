@@ -1,4 +1,6 @@
-﻿namespace PontoApp.Application.DTOs
+﻿using PontoApp.Domain.Entities;
+
+namespace PontoApp.Application.DTOs
 {
     public sealed class EspelhoDiaDto
     {

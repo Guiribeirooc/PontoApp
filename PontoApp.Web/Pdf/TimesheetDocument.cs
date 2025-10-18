@@ -115,7 +115,7 @@ public sealed class TimesheetDocument : IDocument
                 var dia = d.Data;
                 var dow = PtBr.DateTimeFormat.GetAbbreviatedDayName(dia.ToDateTime(TimeOnly.MinValue).DayOfWeek);
 
-                string F(DateTimeOffset? x) => x?.ToLocalTime().ToString("HH:mm") ?? "";
+                string F(DateTime? x) => x?.ToLocalTime().ToString("HH:mm") ?? "";
                 string Ft(TimeSpan? ts) => ts.HasValue ? $"{(int)ts.Value.TotalHours:00}:{ts.Value.Minutes:00}" : "";
 
                 void Td(string t) => table.Cell().PaddingVertical(2).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten4).AlignCenter().Text(t);

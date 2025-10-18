@@ -10,6 +10,6 @@ public class AppUser : Entity
     public int? EmployeeId { get; set; }
     public Employee? Employee { get; set; }
     public string? ResetCode { get; set; }
-    public DateTimeOffset? ResetCodeExpiresAt { get; set; }
+    public DateTime? ResetCodeExpiresAt { get; set; }
     public bool IsDeleted { get; set; }
 }

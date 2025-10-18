@@ -1,3 +1,5 @@
+using PontoApp.Domain.Entities;
+
 namespace PontoApp.Application.DTOs;
 
 public record PunchResultDto(
@@ -6,5 +8,5 @@ public record PunchResultDto(
     string EmployeePin,
     string EmployeeNome,
     PunchType Tipo,
-    DateTimeOffset DataHora
+    DateTime DataHora
 );

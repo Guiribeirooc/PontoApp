@@ -67,7 +67,7 @@ namespace PontoApp.Infrastructure.EF
                 pb.HasKey(p => p.Id);
 
                 pb.Property(p => p.Tipo).IsRequired().HasConversion<int>();
-                pb.Property(p => p.DataHora).IsRequired().HasColumnType("datetimeoffset");
+                pb.Property(p => p.DataHora).IsRequired().HasColumnType("datetime");
                 pb.Property(p => p.EmployeeId).IsRequired();
 
                 pb.HasOne(p => p.Employee)

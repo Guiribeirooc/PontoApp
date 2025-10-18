@@ -12,10 +12,10 @@
     public class TimesheetPdfDayDto
     {
         public DateOnly Data { get; set; }
-        public DateTimeOffset? Entrada { get; set; }
-        public DateTimeOffset? Saida { get; set; }
-        public DateTimeOffset? SaidaAlmoco { get; set; }
-        public DateTimeOffset? VoltaAlmoco { get; set; }
+        public DateTime? Entrada { get; set; }
+        public DateTime? Saida { get; set; }
+        public DateTime? SaidaAlmoco { get; set; }
+        public DateTime? VoltaAlmoco { get; set; }
         public TimeSpan? Total { get; set; }
         public TimeSpan? Extras { get; set; }
         public TimeSpan? Atraso { get; set; }

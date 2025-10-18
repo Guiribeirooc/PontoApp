@@ -1,4 +1,6 @@
-﻿namespace PontoApp.Web.ViewModels;
+﻿using PontoApp.Domain.Entities;
+
+namespace PontoApp.Web.ViewModels;
 
 public class EspelhoDiaViewModel
 {

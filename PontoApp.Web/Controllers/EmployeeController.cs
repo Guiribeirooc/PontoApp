@@ -324,9 +324,9 @@ public class EmployeeController(IEmployeeRepository repo, IPunchRepository punch
         }
 
         emp.IsDeleted = true;
-        emp.DeletedAt = DateTimeOffset.UtcNow;
+        emp.DeletedAt = DateTime.Now;
         if (!string.IsNullOrEmpty(emp.Pin))
-            emp.Pin = $"{emp.Pin}:{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            emp.Pin = $"{emp.Pin}:{DateTime.Now}";
 
         await _repo.UpdateAsync(emp, ct);
         await _repo.SaveChangesAsync(ct);

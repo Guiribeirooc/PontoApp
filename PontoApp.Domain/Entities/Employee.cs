@@ -16,7 +16,7 @@ namespace PontoApp.Domain.Entities
         public TimeOnly? ShiftEnd { get; set; }
         public bool Ativo { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
-        public DateTimeOffset? DeletedAt { get; set; }
+        public DateTime? DeletedAt { get; set; }
         public bool IsAdmin { get; set; }
         public ICollection<Punch> Punches { get; set; } = new List<Punch>();
         public WorkScheduleKind Jornada { get; set; } = WorkScheduleKind.Integral;
