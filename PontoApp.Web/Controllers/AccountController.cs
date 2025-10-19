@@ -128,7 +128,7 @@ namespace PontoApp.Web.Controllers
                 return View(vm);
             }
 
-            var (hash, salt) = PasswordHasher.Hash(vm.Password);
+            var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
 
             var user = new Domain.Entities.AppUser
             {
@@ -229,7 +229,7 @@ namespace PontoApp.Web.Controllers
                 return View(vm);
             }
 
-            var (hash, salt) = PasswordHasher.Hash(vm.NewPassword);
+            var (hash, salt) = PasswordHasher.HashPassword(vm.NewPassword);
             user.PasswordHash = hash;
             user.PasswordSalt = salt;
             user.ResetCode = null;
@@ -291,7 +291,7 @@ namespace PontoApp.Web.Controllers
                 return RedirectToAction(nameof(Login));
             }
 
-            var (hash, salt) = PasswordHasher.Hash(vm.Password);
+            var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
             var user = new Domain.Entities.AppUser
             {
                 Email = _masterEmail.ToLowerInvariant(),
@@ -337,7 +337,7 @@ namespace PontoApp.Web.Controllers
                 return View(vm);
             }
 
-            var (hash, salt) = PasswordHasher.Hash(vm.Password);
+            var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
             var user = new Domain.Entities.AppUser
             {
                 Email = email,

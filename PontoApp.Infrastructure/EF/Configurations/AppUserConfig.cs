@@ -9,18 +9,29 @@ public class AppUserConfig : IEntityTypeConfiguration<AppUser>
     public void Configure(EntityTypeBuilder<AppUser> b)
     {
         b.ToTable("Users");
-        b.Property(x => x.Email).IsRequired().HasMaxLength(256);
-        b.HasIndex(x => x.Email).IsUnique();
+        b.HasKey(x => x.Id);
 
+        b.Property(x => x.Email).IsRequired().HasMaxLength(190);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(200);
         b.Property(x => x.PasswordHash).IsRequired();
         b.Property(x => x.PasswordSalt).IsRequired();
+        b.Property(x => x.CreatedAt).HasColumnType("datetime2");
+        b.Property(x => x.LastLoginAt).HasColumnType("datetime2");
 
-        b.Property(x => x.ResetCode).HasMaxLength(20);
-        b.Property(x => x.IsDeleted).HasDefaultValue(false);
+        // único por empresa (usando filtro para ignorar deletados)
+        b.HasIndex(x => new { x.CompanyId, x.Email })
+         .IsUnique()
+         .HasDatabaseName("UX_Users_Company_Email")
+         .HasFilter("[IsDeleted] = 0");
+
+        b.HasOne<Company>()
+         .WithMany()
+         .HasForeignKey(x => x.CompanyId)
+         .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.Employee)
-            .WithMany()
-            .HasForeignKey(x => x.EmployeeId)
-            .OnDelete(DeleteBehavior.Restrict);
+         .WithMany()
+         .HasForeignKey(x => x.EmployeeId)
+         .OnDelete(DeleteBehavior.Restrict);
     }
 }

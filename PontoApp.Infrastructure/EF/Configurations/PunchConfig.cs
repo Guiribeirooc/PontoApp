@@ -3,31 +3,32 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PontoApp.Domain.Entities;
 
 namespace PontoApp.Infrastructure.EF.Configurations;
+
 public class PunchConfig : IEntityTypeConfiguration<Punch>
 {
-    public void Configure(EntityTypeBuilder<Punch> b)
+    public void Configure(EntityTypeBuilder<Punch> pb)
     {
-        b.ToTable("Punches");
-        b.HasKey(p => p.Id);
+        pb.ToTable("Punches");
+        pb.HasKey(p => p.Id);
 
-        b.Property(p => p.DataHora)
-         .HasColumnType("datetime2")
-         .IsRequired();
+        pb.Property(p => p.DataHora).IsRequired().HasColumnType("datetime2");
+        pb.Property(p => p.Tipo).IsRequired().HasConversion<int>();
+        pb.Property(p => p.Justificativa).HasMaxLength(300);
+        pb.Property(p => p.Origem).HasMaxLength(50);
+        pb.Property(p => p.SourceIp).HasMaxLength(45);
+        pb.Property(p => p.Notes).HasMaxLength(500);
 
-        b.Property(p => p.Tipo)
-         .HasConversion<int>()
-         .IsRequired();
+        pb.HasOne(p => p.Employee)
+          .WithMany(e => e.Punches)
+          .HasForeignKey(p => p.EmployeeId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        b.Property(p => p.Ip).HasMaxLength(64);
-        b.Property(p => p.Justificativa).HasMaxLength(200);
-        b.Property(p => p.Origem).HasMaxLength(50);
+        pb.HasOne<Company>()
+          .WithMany()
+          .HasForeignKey(p => p.CompanyId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        b.HasOne(p => p.Employee)
-         .WithMany(e => e.Punches)
-         .HasForeignKey(p => p.EmployeeId)
-         .OnDelete(DeleteBehavior.Restrict);
-
-        b.HasIndex(p => p.DataHora);
-        b.HasIndex(p => new { p.EmployeeId, p.DataHora });
+        pb.HasIndex(p => new { p.CompanyId, p.EmployeeId, p.DataHora })
+          .HasDatabaseName("IX_Punches_Company_Employee_Ts");
     }
 }

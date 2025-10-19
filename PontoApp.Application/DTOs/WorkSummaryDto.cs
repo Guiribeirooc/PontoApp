@@ -16,7 +16,6 @@
         public List<string> Ocorrencias { get; set; } = new();
     }
 
-
     public record WorkSummaryDto(
         DateOnly Inicio,
         DateOnly Fim,

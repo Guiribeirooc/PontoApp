@@ -1,12 +1,13 @@
-﻿namespace PontoApp.Domain.Entities
+﻿namespace PontoApp.Domain.Entities;
+
+public class OnCallPeriod
 {
-    public class OnCallPeriod
-    {
-        public int Id { get; set; }
-        public int EmployeeId { get; set; }
-        public Employee Employee { get; set; } = null!;
-        public DateTime Start { get; set; }
-        public DateTime End { get; set; }
-        public string? Notes { get; set; }
-    }
+    public long Id { get; set; }
+    public int CompanyId { get; set; }
+    public int EmployeeId { get; set; }
+    public Employee? Employee { get; set; }
+
+    public DateOnly Start { get; set; }
+    public DateOnly End { get; set; }
+    public string? Notes { get; set; }
 }

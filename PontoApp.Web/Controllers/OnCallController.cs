@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// PontoApp.Web/Controllers/OnCallController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PontoApp.Application.Contracts;
+
+namespace PontoApp.Web.Controllers;
 
 [Authorize(Policy = "RequireAdmin")]
 public class OnCallController : Controller
@@ -10,17 +13,32 @@ public class OnCallController : Controller
 
     public async Task<IActionResult> Index(int id, DateTime? de, DateTime? ate, CancellationToken ct)
     {
-        var from = de ?? DateTime.Today.AddDays(-7);
-        var to = ate ?? DateTime.Today.AddDays(7);
+        // datas padrão: -7d / +7d
+        var deDt = (de ?? DateTime.Today.AddDays(-7)).Date;
+        var ateDt = (ate ?? DateTime.Today.AddDays(+7)).Date;
+
+        var from = DateOnly.FromDateTime(deDt);
+        var to = DateOnly.FromDateTime(ateDt);
+
         var list = await _svc.ListAsync(id, from, to, ct);
-        ViewBag.Id = id; ViewBag.De = from; ViewBag.Ate = to;
+
+        ViewBag.Id = id;
+        ViewBag.De = from;
+        ViewBag.Ate = to;
         return View(list);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Add(int id, DateTime start, DateTime end, string? notes, CancellationToken ct)
     {
-        await _svc.AddAsync(id, start, end, notes, ct);
+        await _svc.AddAsync(
+            id,
+            DateOnly.FromDateTime(start.Date),
+            DateOnly.FromDateTime(end.Date),
+            notes,
+            ct
+        );
+
         return RedirectToAction(nameof(Index), new { id });
     }
 }

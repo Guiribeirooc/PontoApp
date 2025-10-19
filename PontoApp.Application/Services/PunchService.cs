@@ -106,7 +106,6 @@ namespace PontoApp.Application.Services
                 EmployeeId = emp.Id,
                 Tipo = tipo,
                 DataHora = now,
-                Ip = ip
             };
 
             await _punchRepo.AddAsync(punch, ct);

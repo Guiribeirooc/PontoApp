@@ -1,0 +1,42 @@
+﻿@model PontoApp.Web.ViewModels.SetupEmpresaAdminViewModel
+@{
+    ViewData["Title"] = "Configurar Empresa";
+}
+<h2>Configurar Empresa</h2>
+
+<form asp-action="Setup" asp-controller="Setup" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Token" />
+
+    <fieldset>
+        <legend>Empresa</legend>
+        <div><label asp-for="RazaoSocial"></label><input asp-for="RazaoSocial" /><span asp-validation-for="RazaoSocial"></span></div>
+        <div><label asp-for="CNPJ"></label><input asp-for="CNPJ" /><span asp-validation-for="CNPJ"></span></div>
+        <div><label asp-for="IE"></label><input asp-for="IE" /></div>
+        <div><label asp-for="IM"></label><input asp-for="IM" /></div>
+        <div><label asp-for="Logradouro"></label><input asp-for="Logradouro" /></div>
+        <div><label asp-for="Numero"></label><input asp-for="Numero" /></div>
+        <div><label asp-for="Complemento"></label><input asp-for="Complemento" /></div>
+        <div><label asp-for="Bairro"></label><input asp-for="Bairro" /></div>
+        <div><label asp-for="Cidade"></label><input asp-for="Cidade" /></div>
+        <div><label asp-for="UF"></label><input asp-for="UF" maxlength="2" /></div>
+        <div><label asp-for="CEP"></label><input asp-for="CEP" /></div>
+        <div><label asp-for="Pais"></label><input asp-for="Pais" /></div>
+        <div><label asp-for="Telefone"></label><input asp-for="Telefone" /></div>
+        <div><label asp-for="EmailContato"></label><input asp-for="EmailContato" /></div>
+        <div><label asp-for="Logo"></label><input asp-for="Logo" type="file" accept="image/*" /></div>
+    </fieldset>
+
+    <fieldset>
+        <legend>Administrador</legend>
+        <div><label asp-for="AdminNome"></label><input asp-for="AdminNome" /><span asp-validation-for="AdminNome"></span></div>
+        <div><label asp-for="AdminEmail"></label><input asp-for="AdminEmail" /><span asp-validation-for="AdminEmail"></span></div>
+        <div><label asp-for="AdminSenha"></label><input asp-for="AdminSenha" type="password" /><span asp-validation-for="AdminSenha"></span></div>
+    </fieldset>
+
+    <button type="submit">Concluir</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

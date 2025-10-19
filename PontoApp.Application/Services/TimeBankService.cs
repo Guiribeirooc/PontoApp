@@ -1,13 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
+using PontoApp.Application.DTOs;
 using PontoApp.Domain.Entities;
+using PontoApp.Domain.Interfaces;
 using PontoApp.Infrastructure.EF;
 
 namespace PontoApp.Application.Services
 {
-    public class TimeBankService(AppDbContext db) : ITimeBankService
+    public class TimeBankService : ITimeBankService
     {
-        private readonly AppDbContext _db = db;
+        private readonly AppDbContext _db;
+        public TimeBankService(AppDbContext db) => _db = db;
 
         public async Task AddAdjustmentAsync(int employeeId, int minutes, string reason, CancellationToken ct)
         {
@@ -17,47 +20,67 @@ namespace PontoApp.Application.Services
                 Minutes = minutes,
                 Reason = reason,
                 Source = "Manual",
-                At = DateTime.UtcNow
+                At = DateOnly.FromDateTime(DateTime.UtcNow) // ✅ corrigido
             });
+
             await _db.SaveChangesAsync(ct);
         }
 
         public async Task<int> GetBalanceMinutesAsync(int employeeId, DateOnly start, DateOnly end, CancellationToken ct)
         {
-            var startDt = start.ToDateTime(TimeOnly.MinValue);
-            var endDt = end.ToDateTime(TimeOnly.MaxValue);
+            // Soma dos ajustes manuais no período
             var ledger = await _db.TimeBankEntries
-                .Where(x => x.EmployeeId == employeeId && x.At >= startDt && x.At <= endDt)
+                .Where(x => x.EmployeeId == employeeId && x.At >= start && x.At <= end)
                 .SumAsync(x => (int?)x.Minutes, ct) ?? 0;
 
-            var punches = await _db.Punches.AsNoTracking()
-                .Where(p => p.EmployeeId == employeeId && p.DataHora >= startDt && p.DataHora <= endDt)
+            // Marcações do funcionário no período
+            var punches = await _db.Punches
+                .AsNoTracking()
+                .Where(p => p.EmployeeId == employeeId &&
+                            DateOnly.FromDateTime(p.DataHora) >= start &&
+                            DateOnly.FromDateTime(p.DataHora) <= end)
                 .OrderBy(p => p.DataHora)
                 .ToListAsync(ct);
 
             var worked = 0;
+
             foreach (var grp in punches.GroupBy(p => p.DataHora.Date))
             {
-                var list = grp.ToList();
-                for (int i = 0; i + 1 < list.Count; i += 2)
-                    worked += (int)(list[i + 1].DataHora - list[i].DataHora).TotalMinutes;
+                var dayPunches = grp.OrderBy(p => p.DataHora).ToList();
+                var minutesDay = 0;
+
+                // Pega pares de marcações (Entrada → Saída, SaídaAlmoço → VoltaAlmoço, etc.)
+                for (int i = 0; i < dayPunches.Count - 1; i += 2)
+                {
+                    var inTime = dayPunches[i].DataHora;
+                    var outTime = dayPunches[i + 1].DataHora;
+                    var diff = (outTime - inTime).TotalMinutes;
+
+                    if (diff > 0 && diff < 720) // ignora valores absurdos (>12h)
+                        minutesDay += (int)diff;
+                }
+
+                worked += minutesDay;
             }
 
-            var days = Enumerable.Range(0, end.DayNumber - start.DayNumber + 1)
-                                 .Select(n => start.AddDays(n))
-                                 .Count(d => d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday);
-
-            var target = days * 8 * 60;
-            return (worked - target) + ledger;
+            // Retorna total de minutos (ajustes + trabalho efetivo)
+            return ledger + worked;
         }
 
-        public Task<List<TimeBankEntry>> GetStatementAsync(int employeeId, DateOnly start, DateOnly end, CancellationToken ct)
+        public async Task<IReadOnlyList<TimeBankStatementDto>> GetStatementAsync(int employeeId, DateOnly start, DateOnly end, CancellationToken ct)
         {
-            var startDt = start.ToDateTime(TimeOnly.MinValue);
-            var endDt = end.ToDateTime(TimeOnly.MaxValue);
-            return _db.TimeBankEntries
-                .Where(x => x.EmployeeId == employeeId && x.At >= startDt && x.At <= endDt)
-                .OrderBy(x => x.At).ToListAsync(ct);
+            var query = _db.TimeBankEntries
+                .AsNoTracking()
+                .Where(x => x.EmployeeId == employeeId && x.At >= start && x.At <= end)
+                .OrderBy(x => x.At)
+                .Select(x => new TimeBankStatementDto(
+                    x.At,
+                    x.Minutes,
+                    x.Reason,
+                    x.Source
+                ));
+
+            return await query.ToListAsync(ct);
         }
     }
 }

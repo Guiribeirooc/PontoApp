@@ -3,94 +3,54 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PontoApp.Domain.Entities;
 
 namespace PontoApp.Infrastructure.EF.Configurations;
+
 public class EmployeeConfig : IEntityTypeConfiguration<Employee>
 {
-    public void Configure(EntityTypeBuilder<Employee> b)
+    public void Configure(EntityTypeBuilder<Employee> eb)
     {
-        b.ToTable("Employees");
+        eb.ToTable("Employees");
+        eb.HasKey(e => e.Id);
 
-        b.HasKey(x => x.Id);
+        eb.Property(e => e.Nome).IsRequired().HasMaxLength(100);
+        eb.Property(e => e.Pin).IsRequired().HasMaxLength(6);
+        eb.Property(e => e.Cpf).IsRequired().HasMaxLength(11).IsFixedLength();
+        eb.Property(e => e.Email).IsRequired().HasMaxLength(160);
+        eb.Property(e => e.PhotoPath).HasMaxLength(400);
+        eb.Property(e => e.Phone).HasMaxLength(30);
+        eb.Property(e => e.NisPis).HasMaxLength(20);
+        eb.Property(e => e.City).HasMaxLength(80);
+        eb.Property(e => e.State).HasMaxLength(2).IsFixedLength();
+        eb.Property(e => e.Departamento).HasMaxLength(100);
+        eb.Property(e => e.Cargo).HasMaxLength(100);
+        eb.Property(e => e.Matricula).HasMaxLength(50);
+        eb.Property(e => e.EmployerName).HasMaxLength(150);
+        eb.Property(e => e.UnitName).HasMaxLength(150);
+        eb.Property(e => e.ManagerName).HasMaxLength(150);
+        eb.Property(e => e.HourlyRate).HasPrecision(10, 2);
 
-        // Básicos
-        b.Property(x => x.Nome)
-            .IsRequired()
-            .HasMaxLength(120);
+        eb.Property(e => e.ShiftStart).HasColumnType("time");
+        eb.Property(e => e.ShiftEnd).HasColumnType("time");
 
-        b.Property(x => x.Pin)
-            .IsRequired()
-            .HasMaxLength(6); 
+        eb.HasOne<Company>()
+          .WithMany()
+          .HasForeignKey(e => e.CompanyId)
+          .OnDelete(DeleteBehavior.Restrict);
 
-        b.Property(x => x.Ativo)
-            .HasDefaultValue(true);
+        eb.HasIndex(e => new { e.CompanyId, e.Pin })
+          .IsUnique()
+          .HasDatabaseName("UX_Employees_Company_Pin")
+          .HasFilter("[IsDeleted]=0 AND [Pin] IS NOT NULL");
 
-        b.Property(x => x.IsAdmin)
-            .HasDefaultValue(false);
+        eb.HasIndex(e => new { e.CompanyId, e.Cpf })
+          .IsUnique()
+          .HasDatabaseName("UX_Employees_Company_Cpf")
+          .HasFilter("[IsDeleted]=0");
 
-        b.Property(x => x.Cpf)
-            .IsRequired()
-            .HasMaxLength(11); 
+        eb.HasIndex(e => new { e.CompanyId, e.Email })
+          .HasDatabaseName("IX_Employees_Company_Email")
+          .HasFilter("[IsDeleted]=0");
 
-        b.Property(x => x.Email)
-            .IsRequired()
-            .HasMaxLength(160);
-
-        b.Property(x => x.Phone)
-            .HasMaxLength(30);
-
-        b.Property(x => x.NisPis)
-            .HasMaxLength(30);
-
-        b.Property(x => x.BirthDate)
-            .HasColumnType("date");
-
-        b.Property(x => x.PhotoPath)
-            .HasMaxLength(400);
-
-        b.Property(x => x.City).HasMaxLength(80);
-        b.Property(x => x.State).HasMaxLength(60);
-        b.Property(x => x.Departamento).HasMaxLength(80);
-        b.Property(x => x.Cargo).HasMaxLength(80);
-        b.Property(x => x.Matricula).HasMaxLength(50);
-
-        b.Property(x => x.HourlyRate)
-            .HasPrecision(10, 2); 
-
-        b.Property(x => x.AdmissionDate).HasColumnType("date");
-        b.Property(x => x.TrackingStart).HasColumnType("date");
-        b.Property(x => x.TrackingEnd).HasColumnType("date");
-        b.Property(x => x.VacationAccrualStart).HasColumnType("date");
-
-        b.Property(x => x.ManagerName).HasMaxLength(80);
-        b.Property(x => x.EmployerName).HasMaxLength(120);
-        b.Property(x => x.UnitName).HasMaxLength(120);
-
-        b.Property(x => x.ShiftStart)
-            .HasConversion(
-                v => v.HasValue ? v.Value.ToTimeSpan() : (TimeSpan?)null,
-                v => v.HasValue ? TimeOnly.FromTimeSpan(v.Value) : (TimeOnly?)null
-            )
-            .HasColumnType("time");
-
-        b.Property(x => x.ShiftEnd)
-            .HasConversion(
-                v => v.HasValue ? v.Value.ToTimeSpan() : (TimeSpan?)null,
-                v => v.HasValue ? TimeOnly.FromTimeSpan(v.Value) : (TimeOnly?)null
-            )
-            .HasColumnType("time");
-
-        b.HasIndex(x => x.Pin)
-            .IsUnique()
-            .HasFilter("[IsDeleted] = 0 AND [Pin] IS NOT NULL");
-
-        b.HasIndex(x => x.Cpf)
-            .IsUnique()
-            .HasFilter("[IsDeleted] = 0");
-
-        b.HasIndex(x => x.Email)
-            .HasFilter("[IsDeleted] = 0");
-
-        b.HasIndex(x => x.Nome);
-
-        b.HasQueryFilter(e => !e.IsDeleted);
+        eb.HasIndex(e => e.Nome)
+          .HasDatabaseName("IX_Employees_Company_Nome");
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PontoApp.Domain.Entities;
+using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Infrastructure.EF;
 

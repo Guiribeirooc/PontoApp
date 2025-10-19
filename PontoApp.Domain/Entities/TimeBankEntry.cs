@@ -1,13 +1,14 @@
-﻿namespace PontoApp.Domain.Entities
+﻿namespace PontoApp.Domain.Entities;
+
+public class TimeBankEntry
 {
-    public class TimeBankEntry
-    {
-        public int Id { get; set; }
-        public int EmployeeId { get; set; }
-        public Employee Employee { get; set; } = null!;
-        public DateTime At { get; set; } = DateTime.UtcNow;
-        public int Minutes { get; set; }
-        public string Reason { get; set; } = "";
-        public string Source { get; set; } = "Manual";
-    }
+    public long Id { get; set; }
+    public int CompanyId { get; set; }
+    public int EmployeeId { get; set; }
+    public Employee? Employee { get; set; }
+
+    public DateOnly At { get; set; }
+    public int Minutes { get; set; }           // positivo/negativo
+    public string? Reason { get; set; }
+    public string? Source { get; set; }
 }

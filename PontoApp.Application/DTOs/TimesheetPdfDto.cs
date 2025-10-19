@@ -7,6 +7,8 @@
         public string Funcionario { get; set; } = "";
         public List<TimesheetPdfDayDto> Dias { get; set; } = new();
         public TimeSpan BancoDeHoras { get; set; }
+        public int? EmployeeId { get; set; }
+        public string? Matricula { get; set; }
     }
 
     public class TimesheetPdfDayDto

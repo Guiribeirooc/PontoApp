@@ -24,7 +24,7 @@
         @foreach (var e in Model)
         {
             <tr>
-                <td>@e.At.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                <td>@e.At.ToDateTime(TimeOnly.MinValue).ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                 <td>@e.Minutes</td>
                 <td>@e.Reason</td>
                 <td>@e.Source</td>

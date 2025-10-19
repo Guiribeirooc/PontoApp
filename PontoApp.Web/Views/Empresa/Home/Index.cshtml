@@ -1,0 +1,7 @@
+﻿@{
+    ViewData["Title"] = "Painel da Empresa";
+}
+
+<h2>Bem-vindo(a) ao painel da sua empresa!</h2>
+<p>Empresa ID: @User.FindFirst("CompanyId")?.Value</p>
+<p>Use o menu acima para gerenciar funcionários, marcações e relatórios.</p>
