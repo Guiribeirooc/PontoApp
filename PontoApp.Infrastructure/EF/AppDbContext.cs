@@ -279,6 +279,8 @@ namespace PontoApp.Infrastructure.EF
             {
                 ai.HasKey(x => x.Id);
                 ai.Property(x => x.TokenHash).IsRequired().HasMaxLength(64);
+                ai.Property(x => x.CompanyName).IsRequired().HasMaxLength(200);
+                ai.Property(x => x.CompanyDocument).IsRequired().HasMaxLength(32);
                 ai.Property(x => x.ExpiresAtUtc).IsRequired();
                 ai.Property(x => x.MaxUses).HasDefaultValue(1);
                 ai.Property(x => x.UsedCount).HasDefaultValue(0);

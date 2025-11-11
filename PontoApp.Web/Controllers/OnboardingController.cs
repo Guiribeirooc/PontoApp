@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PontoApp.Application.Contracts;
-using PontoApp.Application.DTOs;
 using PontoApp.Web.ViewModels;
+using System;
+using System.Threading;
 
 namespace PontoApp.Web.Controllers
 {
@@ -11,53 +12,46 @@ namespace PontoApp.Web.Controllers
     [Route("onboarding")]
     public class OnboardingController : Controller
     {
-        private readonly IOnboardingService _onboarding;
+        private readonly IInviteService _invites;
+        private readonly IOptions<SetupOptions> _options;
 
-        public OnboardingController(IOnboardingService onboarding)
-            => _onboarding = onboarding;
+        public OnboardingController(IInviteService invites, IOptions<SetupOptions> options)
+        {
+            _invites = invites;
+            _options = options;
+        }
 
-        // GET /onboarding  e também /onboarding/create
         [HttpGet("")]
         [HttpGet("create")]
-        public IActionResult Create()
-            => View("~/Views/Onboarding/Create.cshtml", new CompanyCreateViewModel());
+        public IActionResult Invite()
+            => View("~/Views/Onboarding/Invite.cshtml", new CompanyInviteViewModel());
 
-        // POST /onboarding  e também /onboarding/create
         [HttpPost("")]
         [HttpPost("create")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CompanyCreateViewModel vm, CancellationToken ct)
+        public async Task<IActionResult> Invite(CompanyInviteViewModel vm, CancellationToken ct)
         {
             if (!ModelState.IsValid)
-                return View("~/Views/Onboarding/Create.cshtml", vm);
+                return View("~/Views/Onboarding/Invite.cshtml", vm);
 
-            var dto = new OnboardingCreateDto
+            if (string.IsNullOrWhiteSpace(_options.Value.MasterKey) ||
+                !string.Equals(vm.AccessKey, _options.Value.MasterKey, StringComparison.Ordinal))
             {
-                CompanyName = vm.Name,
-                CompanyDocument = vm.CNPJ,
-                AdminName = vm.AdminName,
-                AdminEmail = vm.AdminEmail,
-                AdminPassword = vm.AdminPassword
-            };
+                ModelState.AddModelError(nameof(vm.AccessKey), "Chave de acesso inválida.");
+                return View("~/Views/Onboarding/Invite.cshtml", vm);
+            }
 
-            try
-            {
-                var (company, admin) = await _onboarding.CreateCompanyWithAdminAsync(dto);
-                TempData["Success"] = $"Empresa '{company.Name}' criada. Admin: {admin.Email}";
-                return RedirectToAction("Index", "Home");
-            }
-            catch (DbUpdateException dbex)
-            {
-                // Dica: tratar violação de índice único (nome da empresa/email já existente)
-                ModelState.AddModelError(string.Empty, "Não foi possível salvar. Verifique se já não existe uma empresa ou e-mail iguais.");
-                ModelState.AddModelError(string.Empty, dbex.GetBaseException().Message);
-                return View("~/Views/Onboarding/Create.cshtml", vm);
-            }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError(string.Empty, ex.Message);
-                return View("~/Views/Onboarding/Create.cshtml", vm);
-            }
+            var validity = TimeSpan.FromHours(vm.ValidityHours ?? 48);
+            var maxUses = vm.MaxUses.GetValueOrDefault(1);
+
+            var invite = await _invites.CreateAdminInviteAsync(vm.CompanyName.Trim(), vm.CNPJ, validity, maxUses, ct);
+
+            vm.GeneratedLink = Url.ActionLink("Setup", "Setup", new { token = invite.Token }, Request.Scheme);
+            vm.GeneratedExpiresAt = invite.ExpiresAtUtc;
+            vm.AccessKey = string.Empty;
+
+            ModelState.Clear();
+            return View("~/Views/Onboarding/Invite.cshtml", vm);
         }
     }
 }

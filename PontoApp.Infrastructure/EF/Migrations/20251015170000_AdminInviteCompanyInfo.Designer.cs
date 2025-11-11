@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PontoApp.Infrastructure.EF;
 
 #nullable disable
 
-namespace PontoApp.Infrastructure.Migrations
+namespace PontoApp.Infrastructure.EF.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251015170000_AdminInviteCompanyInfo")]
+    partial class AdminInviteCompanyInfo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -138,7 +141,7 @@ namespace PontoApp.Infrastructure.Migrations
                     b.HasIndex("EmployeeId", "Date")
                         .IsUnique();
 
-                    b.ToTable("DayOffs", (string)null);
+                    b.ToTable("DayOffs");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.Employee", b =>
@@ -312,7 +315,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "Start", "End");
 
-                    b.ToTable("Leaves", (string)null);
+                    b.ToTable("Leaves");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.OnCallPeriod", b =>
@@ -340,7 +343,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "Start", "End");
 
-                    b.ToTable("OnCallPeriods", (string)null);
+                    b.ToTable("OnCallPeriods");
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.TimeBankEntry", b =>
@@ -374,7 +377,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "At");
 
-                    b.ToTable("TimeBankEntries", (string)null);
+                    b.ToTable("TimeBankEntries");
                 });
 
             modelBuilder.Entity("Punch", b =>

@@ -10,8 +10,8 @@
 
     <fieldset>
         <legend>Empresa</legend>
-        <div><label asp-for="RazaoSocial"></label><input asp-for="RazaoSocial" /><span asp-validation-for="RazaoSocial"></span></div>
-        <div><label asp-for="CNPJ"></label><input asp-for="CNPJ" /><span asp-validation-for="CNPJ"></span></div>
+        <div><label asp-for="RazaoSocial"></label><input asp-for="RazaoSocial" readonly /><span asp-validation-for="RazaoSocial"></span></div>
+        <div><label asp-for="CNPJ"></label><input asp-for="CNPJ" readonly /><span asp-validation-for="CNPJ"></span></div>
         <div><label asp-for="IE"></label><input asp-for="IE" /></div>
         <div><label asp-for="IM"></label><input asp-for="IM" /></div>
         <div><label asp-for="Logradouro"></label><input asp-for="Logradouro" /></div>
@@ -31,6 +31,13 @@
         <legend>Administrador</legend>
         <div><label asp-for="AdminNome"></label><input asp-for="AdminNome" /><span asp-validation-for="AdminNome"></span></div>
         <div><label asp-for="AdminEmail"></label><input asp-for="AdminEmail" /><span asp-validation-for="AdminEmail"></span></div>
+        <div><label asp-for="AdminCPF"></label><input asp-for="AdminCPF" /><span asp-validation-for="AdminCPF"></span></div>
+        <div><label asp-for="AdminNascimento"></label><input asp-for="AdminNascimento" type="date" /><span asp-validation-for="AdminNascimento"></span></div>
+        <div><label asp-for="AdminFoto"></label><input asp-for="AdminFoto" type="file" accept="image/*" /><span asp-validation-for="AdminFoto"></span></div>
+        <div><label asp-for="AdminTelefone"></label><input asp-for="AdminTelefone" /><span asp-validation-for="AdminTelefone"></span></div>
+        <div><label asp-for="AdminDepartamento"></label><input asp-for="AdminDepartamento" /><span asp-validation-for="AdminDepartamento"></span></div>
+        <div><label asp-for="AdminCargo"></label><input asp-for="AdminCargo" /><span asp-validation-for="AdminCargo"></span></div>
+        <div><label asp-for="AdminMatricula"></label><input asp-for="AdminMatricula" /><span asp-validation-for="AdminMatricula"></span></div>
         <div><label asp-for="AdminSenha"></label><input asp-for="AdminSenha" type="password" /><span asp-validation-for="AdminSenha"></span></div>
     </fieldset>
 

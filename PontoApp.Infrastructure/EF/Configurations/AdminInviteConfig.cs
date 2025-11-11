@@ -12,6 +12,8 @@ public class AdminInviteConfig : IEntityTypeConfiguration<AdminInvite>
         b.HasKey(x => x.Id);
 
         b.Property(x => x.TokenHash).IsRequired().HasMaxLength(64);
+        b.Property(x => x.CompanyName).IsRequired().HasMaxLength(200);
+        b.Property(x => x.CompanyDocument).IsRequired().HasMaxLength(32);
         b.Property(x => x.ExpiresAtUtc).IsRequired();
         b.Property(x => x.MaxUses).HasDefaultValue(1);
         b.Property(x => x.UsedCount).HasDefaultValue(0);
