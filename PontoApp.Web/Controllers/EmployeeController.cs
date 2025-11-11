@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Domain.Entities;
@@ -24,9 +25,21 @@ public class EmployeeController(IEmployeeRepository repo, IPunchRepository punch
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
-        var list = await _repo.Query()
-                              .OrderBy(e => e.Nome)
-                              .ToListAsync(ct);
+        if (!int.TryParse(User.FindFirstValue("CompanyId"), out var companyId) || companyId <= 0)
+            return Forbid();
+
+        var list = await _db.Employees
+            .Where(e => !e.IsDeleted && e.CompanyId == companyId)
+            .Where(e => !_db.Users
+                .Where(u => u.EmployeeId == e.Id)
+                .Join(_db.UserRoles,
+                      u => u.Id,
+                      ur => ur.UserId,
+                      (u, ur) => ur)
+                .Any(ur => ur.RoleId == 1))   // 👈 NÃO pode ter RoleId = 1 (Admin)
+            .OrderBy(e => e.Nome)
+            .ToListAsync(ct);
+
         return View(list);
     }
 
@@ -116,9 +129,11 @@ public class EmployeeController(IEmployeeRepository repo, IPunchRepository punch
             ModelState.AddModelError(nameof(vm.Cpf), "Já existe um(a) colaborador(a) ativo(a) com este CPF.");
             return View(vm);
         }
+        var companyId = int.Parse(User.FindFirst("CompanyId")!.Value);
 
         var emp = new Employee
         {
+            CompanyId = companyId,
             Nome = vm.Nome,
             Pin = vm.Pin,
             Cpf = vm.Cpf,

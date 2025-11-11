@@ -55,8 +55,8 @@ namespace PontoApp.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<DateTimeOffset?>("ResetCodeExpiresAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ResetCodeExpiresAt")
+                        .HasColumnType("datetime");
 
                     b.HasKey("Id");
 
@@ -91,7 +91,7 @@ namespace PontoApp.Infrastructure.Migrations
                     b.HasIndex("EmployeeId", "Date")
                         .IsUnique();
 
-                    b.ToTable("DayOffs");
+                    b.ToTable("DayOffs", (string)null);
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.Employee", b =>
@@ -265,7 +265,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "Start", "End");
 
-                    b.ToTable("Leaves");
+                    b.ToTable("Leaves", (string)null);
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.OnCallPeriod", b =>
@@ -293,7 +293,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "Start", "End");
 
-                    b.ToTable("OnCallPeriods");
+                    b.ToTable("OnCallPeriods", (string)null);
                 });
 
             modelBuilder.Entity("PontoApp.Domain.Entities.TimeBankEntry", b =>
@@ -327,7 +327,7 @@ namespace PontoApp.Infrastructure.Migrations
 
                     b.HasIndex("EmployeeId", "At");
 
-                    b.ToTable("TimeBankEntries");
+                    b.ToTable("TimeBankEntries", (string)null);
                 });
 
             modelBuilder.Entity("Punch", b =>

@@ -9,6 +9,6 @@ namespace PontoApp.Web.Controllers.Empresa
     public abstract class EmpresaControllerBase : Controller
     {
         protected int CompanyId =>
-            int.TryParse(User.FindFirstValue("CompanyId"), out var id) ? id : 0;
+            int.TryParse(User.FindFirst("CompanyId")?.Value, out var id) ? id : 0;
     }
 }

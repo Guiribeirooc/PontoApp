@@ -19,6 +19,8 @@ public static class PasswordHasher
 
     public static bool Verify(string password, byte[] hash, byte[] salt)
     {
+        if (hash == null || salt == null) return false;
+
         using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
         var computed = pbkdf2.GetBytes(HashSize);
         return CryptographicOperations.FixedTimeEquals(computed, hash);

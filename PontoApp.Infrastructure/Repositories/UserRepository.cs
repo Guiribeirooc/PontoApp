@@ -17,8 +17,12 @@ public class UserRepository(AppDbContext db) : IUserRepository
     public Task<AppUser?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var norm = (email ?? string.Empty).Trim().ToLowerInvariant();
+
         return _db.Users
-                  .FirstOrDefaultAsync(u => !u.IsDeleted && u.Email == norm, ct);
+            .IgnoreQueryFilters() // << ignora CompanyId == 0
+            .FirstOrDefaultAsync(u =>
+                !u.IsDeleted &&
+                Microsoft.EntityFrameworkCore.EF.Functions.Collate(u.Email, "SQL_Latin1_General_CP1_CI_AS") == norm, ct);
     }
 
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)

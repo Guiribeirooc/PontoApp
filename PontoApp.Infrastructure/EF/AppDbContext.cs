@@ -96,8 +96,6 @@ namespace PontoApp.Infrastructure.EF
                     .HasForeignKey(x => x.EmployeeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // filtro global por empresa e não deletado
-                u.HasQueryFilter(x => !x.IsDeleted && x.CompanyId == EF.CompanyId());
             });
 
             // =========================
@@ -134,8 +132,6 @@ namespace PontoApp.Infrastructure.EF
                 eb.HasIndex(e => new { e.CompanyId, e.Cpf }).IsUnique().HasFilter("[IsDeleted]=0").HasDatabaseName("UX_Employees_Company_Cpf");
                 eb.HasIndex(e => new { e.CompanyId, e.Email }).HasFilter("[IsDeleted]=0").HasDatabaseName("IX_Employees_Company_Email");
                 eb.HasIndex(e => e.Nome).HasDatabaseName("IX_Employees_Company_Nome");
-
-                eb.HasQueryFilter(e => !e.IsDeleted && e.CompanyId == EF.CompanyId());
             });
 
             // =========================
@@ -154,7 +150,6 @@ namespace PontoApp.Infrastructure.EF
                   .OnDelete(DeleteBehavior.Restrict);
 
                 wr.HasIndex(x => new { x.CompanyId, x.Nome }).IsUnique().HasDatabaseName("UX_WorkRules_Company_Name");
-                wr.HasQueryFilter(x => x.CompanyId == EF.CompanyId());
             });
 
             // =========================
@@ -182,7 +177,6 @@ namespace PontoApp.Infrastructure.EF
 
                 pb.HasIndex(p => new { p.CompanyId, p.EmployeeId, p.DataHora }).HasDatabaseName("IX_Punches_Company_Employee_Ts");
 
-                pb.HasQueryFilter(p => p.CompanyId == EF.CompanyId() && !p.Employee!.IsDeleted);
             });
 
             // =========================
@@ -206,8 +200,6 @@ namespace PontoApp.Infrastructure.EF
                   .OnDelete(DeleteBehavior.Restrict);
 
                 tb.HasIndex(x => new { x.EmployeeId, x.At }).HasDatabaseName("IX_TimeBank_Employee_At");
-
-                tb.HasQueryFilter(x => x.CompanyId == EF.CompanyId() && !x.Employee!.IsDeleted);
             });
 
             // =========================
@@ -233,8 +225,6 @@ namespace PontoApp.Infrastructure.EF
                   .OnDelete(DeleteBehavior.Restrict);
 
                 lv.HasIndex(x => new { x.EmployeeId, x.Start, x.End }).HasDatabaseName("IX_Leaves_Employee_Period");
-
-                lv.HasQueryFilter(x => x.CompanyId == EF.CompanyId() && !x.Employee!.IsDeleted);
             });
 
             // =========================
@@ -257,8 +247,6 @@ namespace PontoApp.Infrastructure.EF
                   .OnDelete(DeleteBehavior.Restrict);
 
                 df.HasIndex(x => new { x.EmployeeId, x.Date }).IsUnique().HasDatabaseName("UX_DayOffs_Employee_Date");
-
-                df.HasQueryFilter(x => x.CompanyId == EF.CompanyId() && !x.Employee!.IsDeleted);
             });
 
             // =========================
@@ -282,8 +270,6 @@ namespace PontoApp.Infrastructure.EF
                   .OnDelete(DeleteBehavior.Restrict);
 
                 oc.HasIndex(x => new { x.EmployeeId, x.Start, x.End }).HasDatabaseName("IX_OnCall_Employee_Period");
-
-                oc.HasQueryFilter(x => x.CompanyId == EF.CompanyId() && !x.Employee!.IsDeleted);
             });
 
             // =========================

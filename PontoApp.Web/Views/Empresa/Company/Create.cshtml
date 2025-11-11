@@ -1,0 +1,41 @@
+﻿@model PontoApp.Web.ViewModels.CompanyCreateViewModel
+@{
+    ViewData["Title"] = "Cadastrar Empresa";
+}
+
+<h2>Cadastrar Empresa</h2>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <fieldset>
+        <legend>Dados da Empresa</legend>
+        <div><label asp-for="Name"></label><input asp-for="Name" /><span asp-validation-for="Name"></span></div>
+        <div><label asp-for="CNPJ"></label><input asp-for="CNPJ" /><span asp-validation-for="CNPJ"></span></div>
+        <div><label asp-for="IE"></label><input asp-for="IE" /></div>
+        <div><label asp-for="IM"></label><input asp-for="IM" /></div>
+        <div><label asp-for="Logradouro"></label><input asp-for="Logradouro" /></div>
+        <div><label asp-for="Numero"></label><input asp-for="Numero" /></div>
+        <div><label asp-for="Complemento"></label><input asp-for="Complemento" /></div>
+        <div><label asp-for="Bairro"></label><input asp-for="Bairro" /></div>
+        <div><label asp-for="Cidade"></label><input asp-for="Cidade" /></div>
+        <div><label asp-for="UF"></label><input asp-for="UF" maxlength="2" /></div>
+        <div><label asp-for="CEP"></label><input asp-for="CEP" /></div>
+        <div><label asp-for="Pais"></label><input asp-for="Pais" /></div>
+        <div><label asp-for="Telefone"></label><input asp-for="Telefone" /></div>
+        <div><label asp-for="EmailContato"></label><input asp-for="EmailContato" /></div>
+        <div><label asp-for="Logo"></label><input asp-for="Logo" type="file" accept="image/*" /></div>
+
+        <legend>Administrador</legend>
+        <div><label asp-for="AdminName"></label><input asp-for="AdminName" /></div>
+        <div><label asp-for="AdminEmail"></label><input asp-for="AdminEmail" type="email" /></div>
+        <div><label asp-for="AdminPassword"></label><input asp-for="AdminPassword" type="password" /></div>
+
+    </fieldset>
+
+    <button type="submit">Salvar</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,8 +1,8 @@
 ﻿using PontoApp.Application.DTOs;
 
-namespace PontoApp.Application.Contracts;
-
 public interface ICompanyService
 {
-    Task<int> CreateAsync(CreateCompanyDto dto, CancellationToken ct = default);
+    Task<int> CreateAsync(CreateCompanyDto dto, CancellationToken ct);
+    Task<CompanyDto?> GetByIdAsync(int id, CancellationToken ct);
+    Task UpdateAsync(UpdateCompanyDto dto, CancellationToken ct);
 }

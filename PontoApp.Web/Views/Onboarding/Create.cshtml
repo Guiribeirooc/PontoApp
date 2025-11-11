@@ -1,0 +1,53 @@
+﻿@model PontoApp.Web.ViewModels.CompanyCreateViewModel
+@{
+    ViewData["Title"] = "Criar Empresa e Admin";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">@ViewData["Title"]</h2>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <form asp-action="Create" asp-controller="Onboarding" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <!-- Empresa -->
+            <div class="col-12 col-md-6">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="CNPJ" class="form-label"></label>
+                <input asp-for="CNPJ" class="form-control" />
+                <span asp-validation-for="CNPJ" class="text-danger"></span>
+            </div>
+
+            <!-- Admin -->
+            <div class="col-12 col-md-6">
+                <label asp-for="AdminName" class="form-label"></label>
+                <input asp-for="AdminName" class="form-control" />
+                <span asp-validation-for="AdminName" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="AdminEmail" class="form-label"></label>
+                <input asp-for="AdminEmail" type="email" class="form-control" />
+                <span asp-validation-for="AdminEmail" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="AdminPassword" class="form-label"></label>
+                <input asp-for="AdminPassword" type="password" class="form-control" />
+                <span asp-validation-for="AdminPassword" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Criar</button>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Voltar</a>
+        </div>
+    </form>
+</div>

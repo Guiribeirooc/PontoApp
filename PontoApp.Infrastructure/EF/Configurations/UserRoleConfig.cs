@@ -14,7 +14,8 @@ namespace PontoApp.Infrastructure.EF.Configurations
             b.HasOne(x => x.User)
              .WithMany(u => u.Roles)
              .HasForeignKey(x => x.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Cascade)
+             .IsRequired(false);
 
             b.HasOne(x => x.Role)
              .WithMany(r => r.Users)

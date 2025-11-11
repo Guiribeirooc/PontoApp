@@ -15,6 +15,7 @@ public class AuthService(AppDbContext db) : IAuthService
     {
         email = email.Trim().ToLowerInvariant();
         var user = await _db.Users
+            .IgnoreQueryFilters()
             .Where(u => !u.IsDeleted && u.Active && u.Email == email)
             .Select(u => new
             {

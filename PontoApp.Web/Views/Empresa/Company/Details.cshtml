@@ -1,0 +1,29 @@
+﻿@model PontoApp.Web.ViewModels.CompanyDetailsViewModel
+@{
+    ViewData["Title"] = "Empresa";
+}
+<h2>@Model.Name</h2>
+
+@if (Model.LogoBase64 is not null)
+{
+    <img src="@Model.LogoBase64" alt="Logo" style="max-height:80px;margin-bottom:10px;" />
+}
+
+<dl>
+    <dt>CNPJ</dt>
+    <dd>@Model.CNPJ</dd>
+    <dt>IE</dt>
+    <dd>@Model.IE</dd>
+    <dt>IM</dt>
+    <dd>@Model.IM</dd>
+    <dt>Endereço</dt>
+    <dd>@Model.Logradouro, @Model.Numero @Model.Complemento - @Model.Bairro - @Model.Cidade/@Model.UF - @Model.CEP - @Model.Pais</dd>
+    <dt>Telefone</dt>
+    <dd>@Model.Telefone</dd>
+    <dt>E-mail</dt>
+    <dd>@Model.EmailContato</dd>
+</dl>
+
+<p>
+    <a class="btn btn-primary" href="/empresa/company/edit">Editar</a>
+</p>

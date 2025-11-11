@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
+using PontoApp.Domain.Entities;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Infrastructure.Security;
 using PontoApp.Web.ViewModels;
@@ -16,13 +17,16 @@ namespace PontoApp.Web.Controllers
         IEmployeeRepository emps,
         IEmailSender email,
         IConfiguration cfg,
-        ILogger<AccountController> logger) : Controller
+        ILogger<AccountController> logger,
+        IAuthService auth      // 👈 injeta o AuthService
+    ) : Controller
     {
         private readonly IUserRepository _users = users;
         private readonly IEmployeeRepository _emps = emps;
         private readonly IEmailSender _email = email;
         private readonly string _masterEmail = cfg.GetSection("Auth")["MasterAdminEmail"] ?? "";
         private readonly ILogger<AccountController> _logger = logger;
+        private readonly IAuthService _auth = auth;  // 👈 guarda a ref
 
         [HttpGet, AllowAnonymous]
         public IActionResult Login(string? returnUrl = null)
@@ -45,70 +49,35 @@ namespace PontoApp.Web.Controllers
         {
             if (!ModelState.IsValid) return View(vm);
 
-            var email = (vm.Email ?? string.Empty).Trim().ToLowerInvariant();
-            var user = await _users.GetByEmailAsync(email, ct);
-
-            if (user is null || user.IsDeleted ||
-                !PasswordHasher.Verify(vm.Password, user.PasswordHash, user.PasswordSalt))
+            // ✅ Usa o AuthService: valida credenciais, traz CompanyId e roles do banco
+            var result = await _auth.ValidateCredentialsAsync(vm.Email, vm.Password, ct);
+            if (result is null)
             {
                 ModelState.AddModelError(string.Empty, "E-mail ou senha inválidos.");
                 return View(vm);
             }
 
-            var isAdmin = !string.IsNullOrWhiteSpace(_masterEmail) &&
-                          string.Equals(user.Email, _masterEmail, StringComparison.OrdinalIgnoreCase);
+            var (userId, companyId, name, roles) = result.Value;
 
-            var displayName = user.Email;
-
-            if (!isAdmin && user.EmployeeId.HasValue)
-            {
-                var empName = await _emps.Query()
-                    .Where(e => e.Id == user.EmployeeId.Value && e.Ativo && !e.IsDeleted)
-                    .Select(e => e.Nome)
-                    .FirstOrDefaultAsync(ct);
-
-                if (!string.IsNullOrWhiteSpace(empName))
-                    displayName = empName!;
-            }
-
-            var claims = new List<Claim>
-            {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, displayName),
-                new(ClaimTypes.Email, user.Email),
-                new(ClaimTypes.Role, isAdmin ? "Admin" : "Employee")
-            };
-
-            if (user.EmployeeId.HasValue)
-                claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
-
-            if (user.EmployeeId.HasValue)
-            {
-                var active = await _emps.Query()
-                    .Where(e => e.Id == user.EmployeeId.Value)
-                    .Select(e => e.Ativo && !e.IsDeleted)
-                    .FirstOrDefaultAsync(ct);
-
-                claims.Add(new Claim("employee_active", active ? "true" : "false"));
-            }
-
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            // ✅ Monta o principal com: NameIdentifier, Name, CompanyId e TODAS as roles
+            var principal = _auth.BuildPrincipal(userId!.Value, companyId, name, roles);
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity),
+                principal,
                 new AuthenticationProperties
                 {
                     IsPersistent = vm.RememberMe,
-                    ExpiresUtc = DateTime.Now.AddDays(14),
+                    ExpiresUtc = DateTime.UtcNow.AddDays(14),
                     AllowRefresh = true
                 });
 
             if (!string.IsNullOrEmpty(vm.ReturnUrl) && Url.IsLocalUrl(vm.ReturnUrl))
                 return Redirect(vm.ReturnUrl);
 
+            var isAdmin = roles.Contains("Admin", StringComparer.OrdinalIgnoreCase);
             return isAdmin
-                ? RedirectToAction("Index", "Home")
+                ? RedirectToAction("Index", "Home")     // /empresa/home se essa for sua rota
                 : RedirectToAction("Meu", "Punch");
         }
 
@@ -130,15 +99,23 @@ namespace PontoApp.Web.Controllers
 
             var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
 
-            var user = new Domain.Entities.AppUser
+            // Se esse cadastro for “admin criando usuário da própria empresa”,
+            // capture o CompanyId do claim:
+            int companyId = 0;
+            int.TryParse(User.FindFirstValue("CompanyId"), out companyId);
+
+            var user = new PontoApp.Domain.Entities.AppUser
             {
                 Email = email,
                 PasswordHash = hash,
                 PasswordSalt = salt,
-                EmployeeId = vm.EmployeeId
+                EmployeeId = vm.EmployeeId,
+                CompanyId = companyId > 0 ? companyId : 0   // ajuste conforme sua regra
             };
 
             await _users.AddAsync(user, ct);
+            // opcional: vincule uma role padrão aqui (ex.: Employee)
+            // await _users.AddRoleAsync(user.Id, 2, ct); // 2 = Employee
             await _users.SaveAsync(ct);
 
             TempData["ok"] = "Usuário cadastrado.";
@@ -175,7 +152,7 @@ namespace PontoApp.Web.Controllers
 
                     var html =
                         $@"<p>Seu código de redefinição é <strong>{code}</strong>.</p>
-                   <p>Ele expira em 15 minutos.</p>";
+                           <p>Ele expira em 15 minutos.</p>";
 
                     var (success, message) =
                         await _email.SendAsync(user.Email, "PontoApp - Código de Redefinição", html, ct);
@@ -292,19 +269,22 @@ namespace PontoApp.Web.Controllers
             }
 
             var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
-            var user = new Domain.Entities.AppUser
+            var user = new PontoApp.Domain.Entities.AppUser
             {
                 Email = _masterEmail.ToLowerInvariant(),
                 PasswordHash = hash,
                 PasswordSalt = salt,
-                EmployeeId = null
+                EmployeeId = null,
+                CompanyId = 0 // master admin sem tenant
             };
 
             await _users.AddAsync(user, ct);
+            // opcional: vincule role Admin aqui
+            // await _users.AddRoleAsync(user.Id, 1, ct); // 1 = Admin
             await _users.SaveAsync(ct);
 
             TempData["ok"] = "Administrador criado com sucesso. Faça login.";
-            return RedirectToAction(nameof(Login));
+            return RedirectToAction("Login");
         }
 
         [HttpGet, AllowAnonymous]
@@ -338,19 +318,22 @@ namespace PontoApp.Web.Controllers
             }
 
             var (hash, salt) = PasswordHasher.HashPassword(vm.Password);
-            var user = new Domain.Entities.AppUser
+            var user = new AppUser
             {
                 Email = email,
                 PasswordHash = hash,
                 PasswordSalt = salt,
-                EmployeeId = emp.Id
+                EmployeeId = emp.Id,
+                CompanyId = emp.CompanyId         // ✅ vincula o tenant do colaborador
             };
 
             await _users.AddAsync(user, ct);
+            // ✅ garante role Employee
+            ///await _users.AddRoleAsync(user.Id, 2, ct); // 2 = Employee
             await _users.SaveAsync(ct);
 
             TempData["ok"] = "Cadastro realizado. Faça login.";
-            return RedirectToAction(nameof(Login));
+            return RedirectToAction("Login");
         }
     }
 }
