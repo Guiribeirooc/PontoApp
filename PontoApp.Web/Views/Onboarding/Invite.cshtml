@@ -1,0 +1,73 @@
+@model PontoApp.Web.ViewModels.CompanyInviteViewModel
+@{
+    ViewData["Title"] = "Gerar Convite de Onboarding";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-3">@ViewData["Title"]</h2>
+
+    <div class="alert alert-info">
+        Informe o nome e CNPJ da empresa para gerar um link exclusivo de cadastro.
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <form asp-action="Invite" asp-controller="Onboarding" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label asp-for="AccessKey" class="form-label"></label>
+                <input asp-for="AccessKey" class="form-control" />
+                <span asp-validation-for="AccessKey" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="CompanyName" class="form-label"></label>
+                <input asp-for="CompanyName" class="form-control" />
+                <span asp-validation-for="CompanyName" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label asp-for="CNPJ" class="form-label"></label>
+                <input asp-for="CNPJ" class="form-control" />
+                <span asp-validation-for="CNPJ" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label asp-for="ValidityHours" class="form-label"></label>
+                <input asp-for="ValidityHours" class="form-control" />
+                <span asp-validation-for="ValidityHours" class="text-danger"></span>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label asp-for="MaxUses" class="form-label"></label>
+                <input asp-for="MaxUses" class="form-control" />
+                <span asp-validation-for="MaxUses" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Gerar link</button>
+        </div>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.GeneratedLink))
+    {
+        <div class="alert alert-success mt-4">
+            <p><strong>Convite gerado com sucesso!</strong></p>
+            <p>
+                Envie este link para o administrador: <br />
+                <a href="@Model.GeneratedLink" class="link-primary">@Model.GeneratedLink</a>
+            </p>
+            @if (Model.GeneratedExpiresAt.HasValue)
+            {
+                <p>O link expira em: <strong>@Model.GeneratedExpiresAt.Value.ToString("dd/MM/yyyy HH:mm")</strong> (UTC).</p>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

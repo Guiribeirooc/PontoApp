@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace PontoApp.Web.ViewModels;
 
@@ -49,6 +50,28 @@ public class SetupEmpresaAdminViewModel
 
     [Display(Name = "Nome do Admin"), Required, MinLength(3)]
     public string AdminNome { get; set; } = "";
+
+    [Display(Name = "CPF do Admin"), Required, RegularExpression(@"^\d{11}$", ErrorMessage = "CPF deve ter 11 dígitos")]
+    public string AdminCPF { get; set; } = "";
+
+    [Display(Name = "Data de Nascimento"), Required]
+    [DataType(DataType.Date)]
+    public DateTime? AdminNascimento { get; set; }
+
+    [Display(Name = "Foto do Admin")]
+    public IFormFile? AdminFoto { get; set; }
+
+    [Display(Name = "Telefone do Admin")]
+    public string? AdminTelefone { get; set; }
+
+    [Display(Name = "Departamento")]
+    public string? AdminDepartamento { get; set; }
+
+    [Display(Name = "Cargo")]
+    public string? AdminCargo { get; set; }
+
+    [Display(Name = "Matrícula")]
+    public string? AdminMatricula { get; set; }
 
     [Display(Name = "Senha do Admin"), Required, MinLength(8)]
     public string AdminSenha { get; set; } = "";

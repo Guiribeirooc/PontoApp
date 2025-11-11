@@ -2,6 +2,15 @@
 {
     public record AdminInviteDto(
         string Token,
-        DateTime ExpiresAtUtc
+        DateTime ExpiresAtUtc,
+        string CompanyName,
+        string CompanyDocument
+    );
+
+    public record AdminInviteDetailsDto(
+        string CompanyName,
+        string CompanyDocument,
+        DateTime ExpiresAtUtc,
+        bool IsConsumed
     );
 }
