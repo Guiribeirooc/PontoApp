@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using PontoApp.Application.Contracts;
 using PontoApp.Web.ViewModels;
 using System;
@@ -13,9 +14,12 @@ namespace PontoApp.Web.Controllers
     public class OnboardingController : Controller
     {
         private readonly IInviteService _invites;
-        public OnboardingController(IInviteService invites)
+        private readonly IOptions<SetupOptions>? _options;
+
+        public OnboardingController(IInviteService invites, IOptions<SetupOptions>? options = null)
         {
-            _invites = invites;
+            _invites = invites ?? throw new ArgumentNullException(nameof(invites));
+            _options = options; // pode ser nulo em ambientes que não usam MasterKey
         }
 
         [HttpGet("")]
@@ -31,14 +35,32 @@ namespace PontoApp.Web.Controllers
             if (!ModelState.IsValid)
                 return View("~/Views/Onboarding/Invite.cshtml", vm);
 
+            // 🔐 Validação opcional por MasterKey (se configurada)
+            var masterKey = _options?.Value?.MasterKey;
+            if (!string.IsNullOrWhiteSpace(masterKey))
+            {
+                if (!string.Equals(vm.AccessKey, masterKey, StringComparison.Ordinal))
+                {
+                    ModelState.AddModelError(nameof(vm.AccessKey), "Chave de acesso inválida.");
+                    return View("~/Views/Onboarding/Invite.cshtml", vm);
+                }
+            }
+
             var validity = TimeSpan.FromHours(vm.ValidityHours ?? 48);
             var maxUses = vm.MaxUses.GetValueOrDefault(1);
 
-            var invite = await _invites.CreateAdminInviteAsync(vm.CompanyName.Trim(), vm.CnpjDigits, validity, maxUses, ct);
+            // Usa o CNPJ disponível no ViewModel (CnpjDigits ou CNPJ)
+            var cnpj = !string.IsNullOrWhiteSpace(vm.CnpjDigits) ? vm.CnpjDigits : vm.CNPJ;
+            var companyName = vm.CompanyName?.Trim() ?? string.Empty;
+
+            var invite = await _invites.CreateAdminInviteAsync(companyName, cnpj, validity, maxUses, ct);
 
             vm.GeneratedLink = Url.ActionLink("Setup", "Setup", new { token = invite.Token }, Request.Scheme);
             vm.GeneratedExpiresAt = invite.ExpiresAtUtc;
             vm.GeneratedToken = invite.Token;
+
+            // limpa a chave do formulário após uso
+            vm.AccessKey = string.Empty;
 
             ModelState.Clear();
             return View("~/Views/Onboarding/Invite.cshtml", vm);

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -6,6 +7,9 @@ namespace PontoApp.Web.ViewModels;
 
 public class CompanyInviteViewModel : IValidatableObject
 {
+    [Display(Name = "Chave de Acesso")]
+    public string? AccessKey { get; set; } // Validada no controller se MasterKey estiver configurada
+
     [Display(Name = "Nome/Razão Social"), Required, StringLength(200)]
     public string CompanyName { get; set; } = string.Empty;
 
@@ -24,12 +28,13 @@ public class CompanyInviteViewModel : IValidatableObject
     public DateTime? GeneratedExpiresAt { get; set; }
     public string? GeneratedToken { get; set; }
 
+    // Normaliza: mantém só dígitos do CNPJ informado (com ou sem máscara)
     public string CnpjDigits => new string((CNPJ ?? string.Empty).Where(char.IsDigit).ToArray());
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (string.IsNullOrWhiteSpace(CNPJ))
-            yield break; // Required attribute cuida da mensagem padrão
+            yield break; // [Required] já cobre
 
         if (CnpjDigits.Length != 14)
         {
