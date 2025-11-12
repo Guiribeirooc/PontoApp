@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using PontoApp.Application.Contracts;
 using PontoApp.Web.ViewModels;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace PontoApp.Web.Controllers
 {
@@ -13,12 +14,12 @@ namespace PontoApp.Web.Controllers
     public class OnboardingController : Controller
     {
         private readonly IInviteService _invites;
-        private readonly IOptions<SetupOptions> _options;
+        private readonly IOptions<SetupOptions>? _options;
 
-        public OnboardingController(IInviteService invites, IOptions<SetupOptions> options)
+        public OnboardingController(IInviteService invites, IOptions<SetupOptions>? options = null)
         {
-            _invites = invites;
-            _options = options;
+            _invites = invites ?? throw new ArgumentNullException(nameof(invites));
+            _options = options; // pode ser nulo em ambientes que não usam MasterKey
         }
 
         [HttpGet("")]
@@ -34,20 +35,31 @@ namespace PontoApp.Web.Controllers
             if (!ModelState.IsValid)
                 return View("~/Views/Onboarding/Invite.cshtml", vm);
 
-            if (string.IsNullOrWhiteSpace(_options.Value.MasterKey) ||
-                !string.Equals(vm.AccessKey, _options.Value.MasterKey, StringComparison.Ordinal))
+            // 🔐 Validação opcional por MasterKey (se configurada)
+            var masterKey = _options?.Value?.MasterKey;
+            if (!string.IsNullOrWhiteSpace(masterKey))
             {
-                ModelState.AddModelError(nameof(vm.AccessKey), "Chave de acesso inválida.");
-                return View("~/Views/Onboarding/Invite.cshtml", vm);
+                if (!string.Equals(vm.AccessKey, masterKey, StringComparison.Ordinal))
+                {
+                    ModelState.AddModelError(nameof(vm.AccessKey), "Chave de acesso inválida.");
+                    return View("~/Views/Onboarding/Invite.cshtml", vm);
+                }
             }
 
             var validity = TimeSpan.FromHours(vm.ValidityHours ?? 48);
             var maxUses = vm.MaxUses.GetValueOrDefault(1);
 
-            var invite = await _invites.CreateAdminInviteAsync(vm.CompanyName.Trim(), vm.CNPJ, validity, maxUses, ct);
+            // Usa o CNPJ disponível no ViewModel (CnpjDigits ou CNPJ)
+            var cnpj = !string.IsNullOrWhiteSpace(vm.CnpjDigits) ? vm.CnpjDigits : vm.CNPJ;
+            var companyName = vm.CompanyName?.Trim() ?? string.Empty;
+
+            var invite = await _invites.CreateAdminInviteAsync(companyName, cnpj, validity, maxUses, ct);
 
             vm.GeneratedLink = Url.ActionLink("Setup", "Setup", new { token = invite.Token }, Request.Scheme);
             vm.GeneratedExpiresAt = invite.ExpiresAtUtc;
+            vm.GeneratedToken = invite.Token;
+
+            // limpa a chave do formulário após uso
             vm.AccessKey = string.Empty;
 
             ModelState.Clear();

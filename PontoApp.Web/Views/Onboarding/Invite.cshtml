@@ -36,13 +36,13 @@
 
             <div class="col-12 col-md-4">
                 <label asp-for="ValidityHours" class="form-label"></label>
-                <input asp-for="ValidityHours" class="form-control" />
+                <input asp-for="ValidityHours" class="form-control" type="number" min="1" max="168" />
                 <span asp-validation-for="ValidityHours" class="text-danger"></span>
             </div>
 
             <div class="col-12 col-md-4">
                 <label asp-for="MaxUses" class="form-label"></label>
-                <input asp-for="MaxUses" class="form-control" />
+                <input asp-for="MaxUses" class="form-control" type="number" min="1" max="10" />
                 <span asp-validation-for="MaxUses" class="text-danger"></span>
             </div>
         </div>
@@ -60,6 +60,12 @@
                 Envie este link para o administrador: <br />
                 <a href="@Model.GeneratedLink" class="link-primary">@Model.GeneratedLink</a>
             </p>
+
+            @if (!string.IsNullOrWhiteSpace(Model.GeneratedToken))
+            {
+                <p>Chave de acesso: <code>@Model.GeneratedToken</code></p>
+            }
+
             @if (Model.GeneratedExpiresAt.HasValue)
             {
                 <p>O link expira em: <strong>@Model.GeneratedExpiresAt.Value.ToString("dd/MM/yyyy HH:mm")</strong> (UTC).</p>
@@ -67,7 +73,3 @@
         </div>
     }
 </div>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-}
