@@ -1,45 +1,204 @@
 ﻿@model PontoApp.Web.ViewModels.SetupEmpresaAdminViewModel
+
 @{
     ViewData["Title"] = "Configurar Empresa";
 }
-<h2>Configurar Empresa</h2>
 
-<form asp-action="Setup" asp-controller="Setup" method="post" enctype="multipart/form-data">
-    @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Token" />
+<div class="py-4" style="background:#f7f3ea; min-height: calc(100vh - 56px);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-8 col-xl-7">
 
-    <fieldset>
-        <legend>Empresa</legend>
-        <div><label asp-for="RazaoSocial"></label><input asp-for="RazaoSocial" readonly /><span asp-validation-for="RazaoSocial"></span></div>
-        <div><label asp-for="CNPJ"></label><input asp-for="CNPJ" readonly /><span asp-validation-for="CNPJ"></span></div>
-        <div><label asp-for="IE"></label><input asp-for="IE" /></div>
-        <div><label asp-for="IM"></label><input asp-for="IM" /></div>
-        <div><label asp-for="Logradouro"></label><input asp-for="Logradouro" /></div>
-        <div><label asp-for="Numero"></label><input asp-for="Numero" /></div>
-        <div><label asp-for="Complemento"></label><input asp-for="Complemento" /></div>
-        <div><label asp-for="Bairro"></label><input asp-for="Bairro" /></div>
-        <div><label asp-for="Cidade"></label><input asp-for="Cidade" /></div>
-        <div><label asp-for="UF"></label><input asp-for="UF" maxlength="2" /></div>
-        <div><label asp-for="CEP"></label><input asp-for="CEP" /></div>
-        <div><label asp-for="Pais"></label><input asp-for="Pais" /></div>
-        <div><label asp-for="Telefone"></label><input asp-for="Telefone" /></div>
-        <div><label asp-for="EmailContato"></label><input asp-for="EmailContato" /></div>
-        <div><label asp-for="Logo"></label><input asp-for="Logo" type="file" accept="image/*" /></div>
-    </fieldset>
+                <div class="text-center mb-4">
+                    <h2 class="mb-1">Configurar Empresa</h2>
+                    <p class="text-muted mb-0">Preencha os dados da empresa e crie o administrador.</p>
+                </div>
 
-    <fieldset>
-        <legend>Administrador</legend>
-        <div><label asp-for="AdminNome"></label><input asp-for="AdminNome" /><span asp-validation-for="AdminNome"></span></div>
-        <div><label asp-for="AdminEmail"></label><input asp-for="AdminEmail" /><span asp-validation-for="AdminEmail"></span></div>
-        <div><label asp-for="AdminCPF"></label><input asp-for="AdminCPF" /><span asp-validation-for="AdminCPF"></span></div>
-        <div><label asp-for="AdminNascimento"></label><input asp-for="AdminNascimento" type="date" /><span asp-validation-for="AdminNascimento"></span></div>
-        <div><label asp-for="AdminFoto"></label><input asp-for="AdminFoto" type="file" accept="image/*" /><span asp-validation-for="AdminFoto"></span></div>
-        <div><label asp-for="AdminTelefone"></label><input asp-for="AdminTelefone" /><span asp-validation-for="AdminTelefone"></span></div>
-        <div><label asp-for="AdminDepartamento"></label><input asp-for="AdminDepartamento" /><span asp-validation-for="AdminDepartamento"></span></div>
-        <div><label asp-for="AdminCargo"></label><input asp-for="AdminCargo" /><span asp-validation-for="AdminCargo"></span></div>
-        <div><label asp-for="AdminMatricula"></label><input asp-for="AdminMatricula" /><span asp-validation-for="AdminMatricula"></span></div>
-        <div><label asp-for="AdminSenha"></label><input asp-for="AdminSenha" type="password" /><span asp-validation-for="AdminSenha"></span></div>
-    </fieldset>
+                <form asp-action="Setup" asp-controller="Setup" method="post" enctype="multipart/form-data" class="setup-form">
+                    @Html.AntiForgeryToken()
 
-    <button type="submit">Concluir</button>
-</form>
+                    <input type="hidden" asp-for="Token" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <!-- EMPRESA -->
+                    <div class="card shadow-sm mb-3" style="border-radius:14px;">
+                        <div class="card-header bg-white" style="border-bottom:1px solid rgba(0,0,0,.06);">
+                            <strong>Empresa</strong>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label asp-for="RazaoSocial" class="form-label"></label>
+                                    <input asp-for="RazaoSocial" class="form-control" />
+                                    <span asp-validation-for="RazaoSocial" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="CNPJ" class="form-label"></label>
+                                    <input asp-for="CNPJ" class="form-control" inputmode="numeric" />
+                                    <span asp-validation-for="CNPJ" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="EmailContato" class="form-label"></label>
+                                    <input asp-for="EmailContato" class="form-control" type="email" />
+                                    <span asp-validation-for="EmailContato" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="IE" class="form-label"></label>
+                                    <input asp-for="IE" class="form-control" />
+                                    <span asp-validation-for="IE" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="IM" class="form-label"></label>
+                                    <input asp-for="IM" class="form-control" />
+                                    <span asp-validation-for="IM" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12">
+                                    <label asp-for="Logradouro" class="form-label"></label>
+                                    <input asp-for="Logradouro" class="form-control" />
+                                    <span asp-validation-for="Logradouro" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="Numero" class="form-label"></label>
+                                    <input asp-for="Numero" class="form-control" />
+                                    <span asp-validation-for="Numero" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-8">
+                                    <label asp-for="Complemento" class="form-label"></label>
+                                    <input asp-for="Complemento" class="form-control" />
+                                    <span asp-validation-for="Complemento" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="Bairro" class="form-label"></label>
+                                    <input asp-for="Bairro" class="form-control" />
+                                    <span asp-validation-for="Bairro" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="Cidade" class="form-label"></label>
+                                    <input asp-for="Cidade" class="form-control" />
+                                    <span asp-validation-for="Cidade" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <label asp-for="UF" class="form-label"></label>
+                                    <input asp-for="UF" class="form-control" maxlength="2" />
+                                    <span asp-validation-for="UF" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="CEP" class="form-label"></label>
+                                    <input asp-for="CEP" class="form-control" inputmode="numeric" />
+                                    <span asp-validation-for="CEP" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-5">
+                                    <label asp-for="Pais" class="form-label"></label>
+                                    <input asp-for="Pais" class="form-control" />
+                                    <span asp-validation-for="Pais" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="Telefone" class="form-label"></label>
+                                    <input asp-for="Telefone" class="form-control" />
+                                    <span asp-validation-for="Telefone" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="Logo" class="form-label"></label>
+                                    <input asp-for="Logo" class="form-control" type="file" />
+                                    <span asp-validation-for="Logo" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ADMIN -->
+                    <div class="card shadow-sm mb-3" style="border-radius:14px;">
+                        <div class="card-header bg-white" style="border-bottom:1px solid rgba(0,0,0,.06);">
+                            <strong>Administrador</strong>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminNome" class="form-label"></label>
+                                    <input asp-for="AdminNome" class="form-control" />
+                                    <span asp-validation-for="AdminNome" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminEmail" class="form-label"></label>
+                                    <input asp-for="AdminEmail" class="form-control" type="email" />
+                                    <span asp-validation-for="AdminEmail" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminCPF" class="form-label"></label>
+                                    <input asp-for="AdminCPF" class="form-control" inputmode="numeric" />
+                                    <span asp-validation-for="AdminCPF" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminNascimento" class="form-label"></label>
+                                    <input asp-for="AdminNascimento" class="form-control" type="date" />
+                                    <span asp-validation-for="AdminNascimento" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminTelefone" class="form-label"></label>
+                                    <input asp-for="AdminTelefone" class="form-control" />
+                                    <span asp-validation-for="AdminTelefone" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminFoto" class="form-label"></label>
+                                    <input asp-for="AdminFoto" class="form-control" type="file" />
+                                    <span asp-validation-for="AdminFoto" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="AdminDepartamento" class="form-label"></label>
+                                    <input asp-for="AdminDepartamento" class="form-control" />
+                                    <span asp-validation-for="AdminDepartamento" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="AdminCargo" class="form-label"></label>
+                                    <input asp-for="AdminCargo" class="form-control" />
+                                    <span asp-validation-for="AdminCargo" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-4">
+                                    <label asp-for="AdminMatricula" class="form-label"></label>
+                                    <input asp-for="AdminMatricula" class="form-control" />
+                                    <span asp-validation-for="AdminMatricula" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label asp-for="AdminSenha" class="form-label"></label>
+                                    <input asp-for="AdminSenha" class="form-control" type="password" />
+                                    <span asp-validation-for="AdminSenha" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="submit" class="btn btn-primary px-4">Concluir</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.DTOs;
-using PontoApp.Domain.Entities;
 using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
 
@@ -32,7 +31,6 @@ public class ReportService : IReportService
         _rules = rules;
     }
 
-    // Recorte de um dia no relógio local (SP): [00:00, 00:00 do dia seguinte)
     private static (DateTime ini, DateTime fimExcl) DiaRange(DateOnly dia)
         => (dia.ToDateTime(TimeOnly.MinValue), dia.AddDays(1).ToDateTime(TimeOnly.MinValue));
 
@@ -61,14 +59,12 @@ public class ReportService : IReportService
         };
     }
 
-    // Atraso: entrada após início + tolerância; saída antes do fim conta como atraso também
     private (TimeSpan atraso, List<string> ocorr) CalcAtraso(
         DateTime? entrada, DateTime? saida, TimeOnly? sStart, TimeOnly? sEnd)
     {
         var ocorr = new List<string>();
         var atraso = TimeSpan.Zero;
 
-        // tolerância simples de 5 min para entrada
         if (sStart.HasValue && entrada.HasValue)
         {
             var esperadoIn = entrada.Value.Date + sStart.Value.ToTimeSpan();
@@ -79,7 +75,7 @@ public class ReportService : IReportService
         if (sEnd.HasValue && saida.HasValue)
         {
             var esperadoOut = saida.Value.Date + sEnd.Value.ToTimeSpan();
-            var diff = esperadoOut - saida.Value; // saiu antes -> positivo = atraso
+            var diff = esperadoOut - saida.Value;
             if (diff > TimeSpan.Zero) atraso += diff;
         }
 
@@ -94,7 +90,6 @@ public class ReportService : IReportService
         var (ini, _) = DiaRange(inicio);
         var (_, fimExcl) = DiaRange(fim);
 
-        // Busca já com colaborador (nome/jornada/turno)
         var rows = await (
             from p in _punchRepo.Query().AsNoTracking()
             join e in _empRepo.Query().AsNoTracking() on p.EmployeeId equals e.Id
@@ -122,7 +117,6 @@ public class ReportService : IReportService
 
         foreach (var gEmp in rows.GroupBy(x => new { x.EmployeeId, x.Nome, x.Jornada, x.ShiftStart, x.ShiftEnd }))
         {
-            // Agrupa por dia local (sem fuso)
             var porDia = gEmp
                 .GroupBy(x => DateOnly.FromDateTime(x.DataHora.Date))
                 .OrderBy(g => g.Key);
@@ -132,7 +126,6 @@ public class ReportService : IReportService
                 var pares = new List<WorkIntervalDto>();
                 DateTime? aberto = null;
 
-                // Monta pares Entrada/Volta x Saída/SaídaAlmoço
                 foreach (var r in gDia.OrderBy(p => p.DataHora))
                 {
                     switch (r.Tipo)
@@ -167,12 +160,10 @@ public class ReportService : IReportService
                 if (aberto is not null)
                     pares.Add(new WorkIntervalDto(aberto.Value, null, TimeSpan.Zero));
 
-                // Janela "válida" de almoço do dia corrente
                 var janelaIni = gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowStart));
                 var janelaFim = gDia.Key.ToDateTime(TimeOnly.FromTimeSpan(_rules.LunchWindowEnd));
                 var almMin = TimeSpan.FromMinutes(_rules.MinLunchMinutes);
 
-                // Calcula maior intervalo (gap) dentro da janela de almoço
                 TimeSpan maiorGapAlmoco = TimeSpan.Zero;
                 DateTime? lastOut = null;
 
@@ -196,7 +187,6 @@ public class ReportService : IReportService
                     ? (almMin - maiorGapAlmoco)
                     : TimeSpan.Zero;
 
-                // Total trabalhado (somatório dos pares fechados) – aplica ajuste de almoço e teto diário
                 var trabalhado = new TimeSpan(pares.Where(i => i.Out != null).Sum(i => i.Duration.Ticks));
                 if (ajusteAlmoco > TimeSpan.Zero)
                 {
@@ -212,10 +202,8 @@ public class ReportService : IReportService
                 var entrada = pares.FirstOrDefault()?.In;
                 var saida = pares.LastOrDefault(i => i.Out != null)?.Out;
 
-                // Atraso
                 var (atraso, ocorrAtraso) = CalcAtraso(entrada, saida, gEmp.Key.ShiftStart, gEmp.Key.ShiftEnd);
 
-                // Previsto x banco/extras
                 var previsto = Previsto(gEmp.Key.Jornada, workedToday: trabalhado > TimeSpan.Zero);
                 var bancoDia = trabalhado - previsto;
                 var extras = bancoDia > TimeSpan.Zero ? bancoDia : TimeSpan.Zero;
@@ -239,8 +227,8 @@ public class ReportService : IReportService
                     EmployeeId = gEmp.Key.EmployeeId,
                     EmployeeNome = gEmp.Key.Nome,
 
-                    Intervalos = pares,         // já contém Duration arredondada por par
-                    TotalDia = trabalhado,    // total do dia (após ajuste/round)
+                    Intervalos = pares,
+                    TotalDia = trabalhado,
                     AjusteAlmoco = ajusteAlmoco,
                     SaidaAlmoco = saidaAlmocoEvt,
                     VoltaAlmoco = voltaAlmocoEvt,

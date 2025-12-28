@@ -19,10 +19,8 @@ public class UserRepository(AppDbContext db) : IUserRepository
         var norm = (email ?? string.Empty).Trim().ToLowerInvariant();
 
         return _db.Users
-            .IgnoreQueryFilters() // << ignora CompanyId == 0
-            .FirstOrDefaultAsync(u =>
-                !u.IsDeleted &&
-                Microsoft.EntityFrameworkCore.EF.Functions.Collate(u.Email, "SQL_Latin1_General_CP1_CI_AS") == norm, ct);
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => !u.IsDeleted && u.Email == norm, ct);
     }
 
     public Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
@@ -36,6 +34,35 @@ public class UserRepository(AppDbContext db) : IUserRepository
         user.Email = (user.Email ?? string.Empty).Trim().ToLowerInvariant();
         _db.Users.Add(user);
         return Task.CompletedTask;
+    }
+
+    public async Task AddRoleAsync(AppUser user, string roleName, CancellationToken ct = default)
+    {
+        if (user is null) throw new ArgumentNullException(nameof(user));
+
+        var norm = (roleName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(norm))
+            throw new ArgumentException("roleName é obrigatório.", nameof(roleName));
+
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == norm, ct);
+        if (role is null)
+            throw new InvalidOperationException($"Role '{norm}' não encontrada. Verifique o seed da tabela Roles.");
+
+        if (user.Id != 0)
+        {
+            var exists = await _db.UserRoles.AnyAsync(ur => ur.UserId == user.Id && ur.RoleId == role.Id, ct);
+            if (exists) return;
+        }
+        else
+        {
+            if (user.Roles.Any(ur => ur.RoleId == role.Id)) return;
+        }
+
+        _db.UserRoles.Add(new UserRole
+        {
+            User = user,
+            RoleId = role.Id
+        });
     }
 
     public Task UpdateAsync(AppUser user, CancellationToken ct = default)

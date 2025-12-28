@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using PontoApp.Application.Contracts;
@@ -7,11 +6,6 @@ using PontoApp.Application.DTOs;
 using PontoApp.Application.Services;
 using PontoApp.Web.Support;
 using PontoApp.Web.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Microsoft.AspNetCore.Http;
 
 namespace PontoApp.Web.Controllers;
 

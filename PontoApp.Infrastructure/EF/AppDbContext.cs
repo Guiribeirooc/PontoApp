@@ -8,12 +8,10 @@ namespace PontoApp.Infrastructure.EF
     {
         private readonly IHttpContextAccessor _http = http;
 
-        // DbSets conforme schema
         public DbSet<Company> Companies => Set<Company>();
         public DbSet<AppUser> Users => Set<AppUser>();
         public DbSet<Role> Roles => Set<Role>();
         public DbSet<UserRole> UserRoles => Set<UserRole>();
-
         public DbSet<Employee> Employees => Set<Employee>();
         public DbSet<WorkRule> WorkRules => Set<WorkRule>();
         public DbSet<Punch> Punches => Set<Punch>();
@@ -22,16 +20,13 @@ namespace PontoApp.Infrastructure.EF
         public DbSet<DayOff> DayOffs => Set<DayOff>();
         public DbSet<OnCallPeriod> OnCallPeriods => Set<OnCallPeriod>();
 
-        public DbSet<AdminInvite> AdminInvites => Set<AdminInvite>(); // sem CompanyId
+        public DbSet<AdminInvite> AdminInvites => Set<AdminInvite>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
             base.OnModelCreating(b);
             b.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-            // =========================
-            // Company (sem filtro global)
-            // =========================
             b.Entity<Company>(c =>
             {
                 c.HasKey(x => x.Id);
@@ -52,9 +47,6 @@ namespace PontoApp.Infrastructure.EF
                 c.HasIndex(x => x.CNPJ).IsUnique();
             });
 
-            // =========================
-            // Role / UserRole
-            // =========================
             b.Entity<Role>(r =>
             {
                 r.HasKey(x => x.Id);
@@ -69,9 +61,6 @@ namespace PontoApp.Infrastructure.EF
                 ur.HasOne(x => x.Role).WithMany(r => r.Users).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade);
             });
 
-            // =========================
-            // AppUser
-            // =========================
             b.Entity<AppUser>(u =>
             {
                 u.HasKey(x => x.Id);
@@ -81,26 +70,20 @@ namespace PontoApp.Infrastructure.EF
                 u.Property(x => x.PasswordHash).IsRequired();
                 u.Property(x => x.PasswordSalt).IsRequired();
 
-                // índice único por empresa (ignora deletados)
                 u.HasIndex(x => new { x.CompanyId, x.Email }).HasDatabaseName("UX_Users_Company_Email");
 
-                // FK para Company obrigatória
                 u.HasOne<Company>()
                     .WithMany()
                     .HasForeignKey(x => x.CompanyId)
                     .OnDelete(DeleteBehavior.Restrict);
-
-                // FK opcional para Employee (definida no SQL também)
+                
                 u.HasOne(x => x.Employee)
-                    .WithMany() // se quiser, crie ICollection<AppUser> em Employee
+                    .WithMany()
                     .HasForeignKey(x => x.EmployeeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
             });
 
-            // =========================
-            // Employee
-            // =========================
             b.Entity<Employee>(eb =>
             {
                 eb.HasKey(e => e.Id);
@@ -134,9 +117,6 @@ namespace PontoApp.Infrastructure.EF
                 eb.HasIndex(e => e.Nome).HasDatabaseName("IX_Employees_Company_Nome");
             });
 
-            // =========================
-            // WorkRule
-            // =========================
             b.Entity<WorkRule>(wr =>
             {
                 wr.HasKey(x => x.Id);
@@ -152,14 +132,11 @@ namespace PontoApp.Infrastructure.EF
                 wr.HasIndex(x => new { x.CompanyId, x.Nome }).IsUnique().HasDatabaseName("UX_WorkRules_Company_Name");
             });
 
-            // =========================
-            // Punch
-            // =========================
             b.Entity<Punch>(pb =>
             {
                 pb.HasKey(p => p.Id);
                 pb.Property(p => p.Tipo).IsRequired().HasConversion<int>();
-                pb.Property(p => p.DataHora).IsRequired().HasColumnType("datetime2"); // alinhado ao SQL
+                pb.Property(p => p.DataHora).IsRequired().HasColumnType("datetime2");
                 pb.Property(p => p.Justificativa).HasMaxLength(300);
                 pb.Property(p => p.Origem).HasMaxLength(50);
                 pb.Property(p => p.SourceIp).HasMaxLength(45);
@@ -179,9 +156,6 @@ namespace PontoApp.Infrastructure.EF
 
             });
 
-            // =========================
-            // TimeBankEntry
-            // =========================
             b.Entity<TimeBankEntry>(tb =>
             {
                 tb.HasKey(x => x.Id);
@@ -202,9 +176,6 @@ namespace PontoApp.Infrastructure.EF
                 tb.HasIndex(x => new { x.EmployeeId, x.At }).HasDatabaseName("IX_TimeBank_Employee_At");
             });
 
-            // =========================
-            // Leave
-            // =========================
             b.Entity<Leave>(lv =>
             {
                 lv.HasKey(x => x.Id);
@@ -227,9 +198,6 @@ namespace PontoApp.Infrastructure.EF
                 lv.HasIndex(x => new { x.EmployeeId, x.Start, x.End }).HasDatabaseName("IX_Leaves_Employee_Period");
             });
 
-            // =========================
-            // DayOff
-            // =========================
             b.Entity<DayOff>(df =>
             {
                 df.HasKey(x => x.Id);
@@ -249,9 +217,6 @@ namespace PontoApp.Infrastructure.EF
                 df.HasIndex(x => new { x.EmployeeId, x.Date }).IsUnique().HasDatabaseName("UX_DayOffs_Employee_Date");
             });
 
-            // =========================
-            // OnCallPeriod
-            // =========================
             b.Entity<OnCallPeriod>(oc =>
             {
                 oc.HasKey(x => x.Id);
@@ -272,9 +237,6 @@ namespace PontoApp.Infrastructure.EF
                 oc.HasIndex(x => new { x.EmployeeId, x.Start, x.End }).HasDatabaseName("IX_OnCall_Employee_Period");
             });
 
-            // =========================
-            // AdminInvite (sem CompanyId, sem filtro)
-            // =========================
             b.Entity<AdminInvite>(ai =>
             {
                 ai.HasKey(x => x.Id);
@@ -288,7 +250,6 @@ namespace PontoApp.Infrastructure.EF
             });
         }
 
-        // Carimba CompanyId automaticamente em novas entidades (se existir a propriedade)
         public override int SaveChanges()
         {
             StampCompanyId();
@@ -323,7 +284,6 @@ namespace PontoApp.Infrastructure.EF
         }
     }
 
-    // Helper para filtros globais (captura IHttpContext)
     internal static class EF
     {
         private static IHttpContextAccessor? _http;

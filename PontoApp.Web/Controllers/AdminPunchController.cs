@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Services;
-using PontoApp.Domain.Entities;
 using PontoApp.Domain.Enums;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Web.ViewModels;
@@ -43,7 +42,7 @@ namespace PontoApp.Web.Controllers
                 if (!exists) return NotFound("Colaborador não encontrado ou inativo.");
             }
 
-            var nowLocal = DateTime.Now; // local puro
+            var nowLocal = DateTime.Now;
             var vm = new AdminManualPunchViewModel
             {
                 EmployeeId = employeeId,
@@ -106,7 +105,7 @@ namespace PontoApp.Web.Controllers
                 TempData["ok"] = "Marcação manual registrada.";
 
                 var diaLocal = DateOnly.FromDateTime(localDt.Date);
-                return RedirectToAction(nameof(List),
+                return RedirectToAction(nameof(Periodo),
                     new { employeeId = vm.EmployeeId!.Value, inicio = diaLocal, fim = diaLocal });
             }
             catch (InvalidOperationException ex)
@@ -127,7 +126,7 @@ namespace PontoApp.Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> List(int employeeId, DateOnly? inicio = null, DateOnly? fim = null, CancellationToken ct = default)
+        public async Task<IActionResult> Periodo(int employeeId, DateOnly? inicio = null, DateOnly? fim = null, CancellationToken ct = default)
         {
             var emp = await _empRepo.GetByIdAsync(employeeId, ct);
             if (emp is null || emp.IsDeleted) return NotFound("Colaborador não encontrado.");
@@ -140,6 +139,107 @@ namespace PontoApp.Web.Controllers
             ViewBag.Inicio = ini;
             ViewBag.Fim = end;
             return View(dados);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Dia(DateOnly? dia, int? employeeId, CancellationToken ct)
+        {
+            var d = dia ?? DateOnly.FromDateTime(DateTime.Today);
+
+            ViewBag.Employees = BuildEmployeeSelectWithAll(employeeId);
+
+            if (employeeId.HasValue)
+            {
+                var ok = await _empRepo.Query()
+                    .AnyAsync(e => e.Id == employeeId.Value && e.Ativo && !e.IsDeleted, ct);
+
+                if (!ok)
+                {
+                    ModelState.AddModelError(string.Empty, "Colaborador inválido ou inativo.");
+                    var allList = await _punchService.GetAllDoDiaAsync(d, ct);
+                    // Reaproveita a view antiga
+                    return View("~/Views/Punch/Dia.cshtml", allList);
+                }
+
+                var listByEmp = await _punchService.ListarDoDiaAsync(d, employeeId, ct);
+                return View("~/Views/Punch/Dia.cshtml", listByEmp);
+            }
+
+            var listAll = await _punchService.GetAllDoDiaAsync(d, ct);
+            return View("~/Views/Punch/Dia.cshtml", listAll);
+        }
+
+        [HttpGet]
+        public IActionResult Mes()
+        {
+            var (ini,_) = GetPeriodoPadrao();
+            ViewBag.Ano = ini.Year;
+            ViewBag.Mes = ini.Month;
+
+            ViewBag.Employees = new SelectList(
+                _empRepo.Query()
+                    .Where(e => e.Ativo && !e.IsDeleted)
+                    .OrderBy(e => e.Nome)
+                    .Select(e => new { e.Id, Nome = $"{e.Pin} - {e.Nome}" }),
+                "Id", "Nome"
+            );
+
+            // Reaproveita a view antiga (que tinha dropdown)
+            return View("~/Views/Punch/Mes.cshtml");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Mes(int ano, int mes, int? employeeId, CancellationToken ct)
+        {
+            var inicio = new DateOnly(ano, mes, 1);
+            var fim = inicio.AddMonths(1).AddDays(-1);
+
+            if (employeeId.HasValue)
+            {
+                var ok = await _empRepo.Query()
+                    .AnyAsync(e => e.Id == employeeId.Value && e.Ativo && !e.IsDeleted, ct);
+
+                if (!ok)
+                {
+                    TempData["error"] = "Colaborador inválido ou inativo.";
+                    return RedirectToAction(nameof(Mes));
+                }
+            }
+
+            var dados = await _punchService.ListarPeriodoAsync(inicio, fim, employeeId, ct);
+            return View("~/Views/Punch/MesResultado.cshtml", dados);
+        }
+
+
+        private List<SelectListItem> BuildEmployeeSelectWithAll(int? selectedId)
+        {
+            var items = new List<SelectListItem>
+            {
+                new() { Value = "", Text = "Todos", Selected = selectedId == null }
+            };
+
+            items.AddRange(
+                _empRepo.Query()
+                    .Where(e => e.Ativo && !e.IsDeleted)
+                    .OrderBy(e => e.Nome)
+                    .Select(e => new SelectListItem
+                    {
+                        Value = e.Id.ToString(),
+                        Text = $"{e.Pin} - {e.Nome}",
+                        Selected = selectedId.HasValue && selectedId.Value == e.Id
+                    })
+            );
+
+            return items;
+        }
+
+        private static (DateOnly Inicio, DateOnly Fim) GetPeriodoPadrao()
+        {
+            var hoje = DateTime.Today;
+            var inicio = new DateOnly(hoje.Year, hoje.Month, 1);
+            var fim = inicio.AddMonths(1).AddDays(-1);
+            return (inicio, fim);
         }
     }
 }

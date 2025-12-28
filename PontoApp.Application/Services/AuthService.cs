@@ -10,10 +10,11 @@ public class AuthService(AppDbContext db) : IAuthService
 {
     private readonly AppDbContext _db = db;
 
-    public async Task<(int? UserId, int CompanyId, string Name, IEnumerable<string> Roles)?> ValidateCredentialsAsync(
+    public async Task<(int? UserId, int CompanyId, string Name, int? EmployeeId, IEnumerable<string> Roles)?> ValidateCredentialsAsync(
         string email, string password, CancellationToken ct = default)
     {
         email = email.Trim().ToLowerInvariant();
+
         var user = await _db.Users
             .IgnoreQueryFilters()
             .Where(u => !u.IsDeleted && u.Active && u.Email == email)
@@ -22,6 +23,7 @@ public class AuthService(AppDbContext db) : IAuthService
                 u.Id,
                 u.CompanyId,
                 u.Name,
+                u.EmployeeId,
                 u.PasswordHash,
                 u.PasswordSalt
             })
@@ -35,10 +37,10 @@ public class AuthService(AppDbContext db) : IAuthService
                            where ur.UserId == user.Id
                            select r.Name).ToListAsync(ct);
 
-        return (user.Id, user.CompanyId, user.Name, roles);
+        return (user.Id, user.CompanyId, user.Name, user.EmployeeId, roles);
     }
 
-    public ClaimsPrincipal BuildPrincipal(int userId, int companyId, string name, IEnumerable<string> roles)
+    public ClaimsPrincipal BuildPrincipal(int userId, int companyId, string name, int? employeeId, IEnumerable<string> roles)
     {
         var claims = new List<Claim>
         {
@@ -46,6 +48,10 @@ public class AuthService(AppDbContext db) : IAuthService
             new(ClaimTypes.Name, name),
             new("CompanyId", companyId.ToString())
         };
+
+        if (employeeId.HasValue)
+            claims.Add(new Claim("EmployeeId", employeeId.Value.ToString()));
+
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
         var id = new ClaimsIdentity(claims, "Cookies");

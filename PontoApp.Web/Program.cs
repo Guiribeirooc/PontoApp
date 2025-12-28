@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using PontoApp.Application.Contracts;
 using PontoApp.Application.Services;
-using PontoApp.Infrastructure.Services;
 using PontoApp.Domain.Interfaces;
 using PontoApp.Infrastructure.EF;
 using PontoApp.Infrastructure.Repositories;
-using PontoApp.Web.Validation;
+using PontoApp.Infrastructure.Security;
+using PontoApp.Infrastructure.Seed;
+using PontoApp.Infrastructure.Services;
 using PontoApp.Web.Authorization;
 using PontoApp.Web.Controllers;
+using PontoApp.Web.Middleware;
+using PontoApp.Web.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,9 +32,16 @@ builder.Services
 builder.Services.AddLocalization();
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"))
-       .EnableSensitiveDataLogging()
-       .LogTo(Console.WriteLine, LogLevel.Information));
+{
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
+
+    if (builder.Environment.IsDevelopment())
+    {
+        opt.EnableDetailedErrors();
+        opt.EnableSensitiveDataLogging();
+        opt.LogTo(Console.WriteLine, LogLevel.Information);
+    }
+});
 
 builder.Services.AddHttpContextAccessor();
 
@@ -100,7 +110,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IInviteService, InviteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<SetupOrchestrator>();
-
+builder.Services.Configure<IpAllowListOptions>(builder.Configuration.GetSection("IpAllowList"));
 builder.Services.Configure<SetupOptions>(builder.Configuration.GetSection("Setup"));
 
 var app = builder.Build();
@@ -120,14 +130,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-    if (!await db.Roles.AnyAsync())
-    {
-        db.Roles.AddRange(
-            new PontoApp.Domain.Entities.Role { Name = "Admin" },
-            new PontoApp.Domain.Entities.Role { Name = "Employee" });
-        await db.SaveChangesAsync();
-    }
+    await RoleSeeder.SeedAsync(db);
 }
 
 if (!app.Environment.IsDevelopment())
@@ -137,8 +140,8 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<IpAllowListMiddleware>();
 app.UseStaticFiles();
-
 app.UseRouting();
 
 app.MapGet("/service-worker.js", async ctx =>
